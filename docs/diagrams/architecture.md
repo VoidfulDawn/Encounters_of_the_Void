@@ -31,6 +31,25 @@ graph TD
     React -->|"on fetch error"| ErrorState
 ```
 
+## Production Deployment Topology
+
+Docker Compose brings up two containers on isolated networks. The backend is on an internal-only network; the frontend bridges both networks and is the sole public entry point.
+
+```mermaid
+graph TD
+  subgraph DockerHost["Docker Host"]
+    subgraph network_frontend["network: frontend (bridge)"]
+      FE["frontend\nnginx:alpine\nport 80"]
+    end
+    subgraph network_backend["network: backend (internal)"]
+      BE["backend\neclipse-temurin:21-jre-alpine\nport 8080"]
+    end
+    FE -->|"/api/* proxy"| BE
+  end
+  Browser -->|"HTTP :80"| FE
+  BE -->|"JDBC"| PG[("PostgreSQL\nexternal")]
+```
+
 ## Component Notes
 
 | Component | Details |

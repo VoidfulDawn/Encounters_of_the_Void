@@ -59,6 +59,25 @@ sequenceDiagram
     React->>Browser: render p.error element with error message
 ```
 
+## Flow 4: Production — Proxied API Request via Nginx
+
+Browser hits the Nginx frontend container; `/api/*` requests are forwarded to the backend over the internal Docker network.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Nginx as Nginx (frontend :80)
+    participant Backend as Spring Boot (backend :8080)
+    participant DB as PostgreSQL (external)
+
+    User->>+Nginx: GET /api/v1/home
+    Nginx->>+Backend: GET /api/v1/home (proxy_pass)
+    Backend->>+DB: JDBC query (prod profile)
+    DB-->>-Backend: ResultSet
+    Backend-->>-Nginx: 200 HAL+JSON {status, _links:{self, status}}
+    Nginx-->>-User: 200 HAL+JSON
+```
+
 ## Flow 3: GET /api/v1/status
 
 Simple JSON health-check endpoint (direct backend call, bypasses the React app).
