@@ -1,0 +1,6 @@
+target/
+*.jar
+*.class
+frontend/node_modules/
+frontend/dist/
+.env
