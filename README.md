@@ -1,6 +1,6 @@
 # Encounters of the Void
 
-Full-stack application with a Spring Boot 3.x / Java 21 HAL API backend and a React 18 / TypeScript / Vite / Material Web Components frontend.
+Full-stack application with a Spring Boot 3.x / Java 21 HAL API backend and a React 19 / TypeScript / Vite / Material Web Components frontend.
 
 ## Prerequisites
 

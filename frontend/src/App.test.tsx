@@ -14,6 +14,7 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve(mockHalResponse),
     })
   )
@@ -26,6 +27,17 @@ describe('App', () => {
       expect(screen.getByTestId('status-message')).toHaveTextContent(
         'Everything is working.'
       )
+    })
+  })
+
+  it('shows error state when fetch returns non-2xx', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    )
+    render(<App />)
+    await waitFor(() => {
+      expect(screen.getByText(/HTTP 500/i)).toBeInTheDocument()
     })
   })
 })

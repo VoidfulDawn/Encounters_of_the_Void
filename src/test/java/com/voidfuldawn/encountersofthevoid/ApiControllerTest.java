@@ -28,7 +28,8 @@ class ApiControllerTest {
         mockMvc.perform(get("/api/v1/home"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/hal+json"))
-                .andExpect(jsonPath("$._links.self.href").isNotEmpty());
+                .andExpect(jsonPath("$._links.self.href").isNotEmpty())
+                .andExpect(jsonPath("$._links.status.href").isNotEmpty());
     }
 
     @Test
