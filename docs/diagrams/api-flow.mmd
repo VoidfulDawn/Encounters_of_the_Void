@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant Browser
+    participant React as React App (App.tsx)
+    participant ViteProxy as Vite Proxy (:5173)
+    participant API as ApiController (:8080)
+
+    Browser->>React: page load
+    React->>React: useState("Loading...")
+    React->>React: useEffect fires
+
+    React->>+ViteProxy: fetch /api/v1/home
+    ViteProxy->>+API: GET /api/v1/home (Accept: application/hal+json)
+    API->>API: new HomeResource("Everything is working.")
+    API->>API: resource.add(self link)
+    API->>API: resource.add(status link)
+    API-->>-ViteProxy: 200 HAL+JSON {status, _links:{self, status}}
+    ViteProxy-->>-React: 200 HAL+JSON response
+
+    React->>React: setStatus(data.status)
+    React->>Browser: render md-filled-card with status message
+
+    note over React,API: Error path — fetch failure
+    React->>+ViteProxy: fetch /api/v1/home
+    ViteProxy-->>-React: network error or non-2xx
+    React->>React: catch block → setError(err.message or "Unknown error")
+    React->>Browser: render p.error with error message

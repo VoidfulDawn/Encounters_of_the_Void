@@ -1,0 +1,21 @@
+graph TB
+    subgraph backend ["Backend — com.voidfuldawn.encountersofthevoid"]
+        App["EncountersOfTheVoidApplication\n(entry point)"]
+        Controller["ApiController\n/api/v1/home  /api/v1/status"]
+        Model["HomeResource\nextends RepresentationModel"]
+        Config["CorsConfig\nimplements WebMvcConfigurer"]
+    end
+
+    subgraph frontend ["Frontend — src/"]
+        MainTSX["main.tsx\n(React entry, mounts App)"]
+        AppTSX["App.tsx\n(root component, fetch + render)"]
+        Types["types/HalHome.ts\n(TypeScript HAL interface)"]
+        GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
+    end
+
+    App --> Controller
+    App --> Config
+    Controller --> Model
+    MainTSX --> AppTSX
+    AppTSX --> Types
+    AppTSX --> GlobalD

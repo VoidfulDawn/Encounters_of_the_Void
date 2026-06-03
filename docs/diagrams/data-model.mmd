@@ -1,0 +1,28 @@
+classDiagram
+    class HomeResource {
+        -String status
+        +HomeResource(String status)
+        +getStatus() String
+    }
+
+    class RepresentationModel {
+        <<Spring HATEOAS>>
+        +add(Link link)
+        +getLinks() Links
+    }
+
+    class HalLinks {
+        <<JSON _links shape>>
+        +self HalLink
+        +status HalLink
+    }
+
+    class HalLink {
+        <<JSON shape>>
+        +href String
+    }
+
+    HomeResource --|> RepresentationModel : extends
+    HomeResource "1" --> "1" HalLinks : serialized as _links
+    HalLinks --> HalLink : self
+    HalLinks --> HalLink : status
