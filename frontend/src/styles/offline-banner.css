@@ -1,0 +1,13 @@
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-family: var(--md-sys-typescale-body-medium-font, sans-serif);
+  font-size: 0.875rem;
+  background-color: var(--md-sys-color-error, #b3261e);
+  color: var(--md-sys-color-on-error, #ffffff);
+  box-sizing: border-box;
+}
