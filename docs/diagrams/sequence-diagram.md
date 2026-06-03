@@ -55,8 +55,8 @@ sequenceDiagram
     end
 
     React->>React: .catch() handler fires
-    React->>React: setStatus("Failed to load status.")
-    React->>Browser: render md-filled-card with error message
+    React->>React: setError(err.message or "Unknown error")
+    React->>Browser: render p.error element with error message
 ```
 
 ## Flow 3: GET /api/v1/status

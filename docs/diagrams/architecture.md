@@ -10,7 +10,7 @@ graph TD
         Vite["Vite Dev Server\n(proxy /api/* → :8080)"]
         React["React 19 App\n(App.tsx)"]
         MWC["@material/web\nmd-filled-card\n(per-component import)"]
-        ErrorState["Error State\n(status message on fetch failure)"]
+        ErrorState["Error State\n(p.error renders on fetch failure)"]
     end
 
     subgraph Backend ["Backend (Spring Boot :8080)"]
@@ -35,8 +35,8 @@ graph TD
 
 | Component | Details |
 |-----------|---------|
-| React 19 (`App.tsx`) | Single component; `useState<string>` tracks `status`; `useEffect` fires fetch on mount |
+| React 19 (`App.tsx`) | Single component; two states: `status` (string) and `error` (string \| null); `useEffect` fires fetch on mount |
 | MWC import | Per-component: `@material/web/labs/card/filled-card.js` (not the bulk `all.js`) |
 | Vite proxy | `vite.config.ts` maps `/api/*` → `http://localhost:8080`; no env var needed in dev |
-| Error handling | `.catch()` in `useEffect` sets `status` to a user-visible failure message |
+| Error handling | `.catch()` in `useEffect` calls `setError()` with the error message; renders `<p className="error">` (not `md-filled-card`) when `error` state is non-null |
 | CORS | `CorsConfig` permits `GET, POST, OPTIONS` from `http://localhost:5173` on `/api/**` |

@@ -59,7 +59,7 @@ classDiagram
 
 | File | Role |
 |------|------|
-| `App.tsx` | Root component; `useState<string>('Loading...')` holds `status`; `useEffect` fetches `/api/v1/home` on mount, calls `setStatus(data.status)` on success or `setStatus('Failed to load status.')` on error |
+| `App.tsx` | Root component; two states: `status: string` (init `'Loading...'`) and `error: string \| null` (init `null`); `useEffect` fetches `/api/v1/home` on mount, calls `setStatus(data.status)` on success or `setError(err instanceof Error ? err.message : 'Unknown error')` on error; renders `<p className="error">` when error is non-null, else `<md-filled-card>` |
 | `main.tsx` | React entry point; mounts `<App />` into `#root` |
 | `global.d.ts` | TypeScript ambient declarations for Material Web custom elements (`md-filled-card`) |
 | `types/HalHome.ts` | TypeScript interface for the HAL+JSON response: `{ status: string; _links: { self: { href: string }; status: { href: string } } }` |
