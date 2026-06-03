@@ -7,15 +7,16 @@ graph TD
     Browser["Browser"]
 
     subgraph Frontend ["Frontend (Vite Dev Server :5173)"]
-        Vite["Vite Dev Server"]
+        Vite["Vite Dev Server\n(proxy /api/* → :8080)"]
         React["React 19 App\n(App.tsx)"]
-        MWC["Material Web Components\n(md-filled-card)"]
+        MWC["@material/web\nmd-filled-card\n(per-component import)"]
+        ErrorState["Error State\n(status message on fetch failure)"]
     end
 
     subgraph Backend ["Backend (Spring Boot :8080)"]
         Controller["ApiController\n@RestController /api/v1"]
-        HomeEP["GET /api/v1/home\n→ HAL+JSON HomeResource"]
-        StatusEP["GET /api/v1/status\n→ JSON Map"]
+        HomeEP["GET /api/v1/home\n→ HAL+JSON HomeResource\n{status, _links:{self, status}}"]
+        StatusEP["GET /api/v1/status\n→ {status: 'Everything is working.'}"]
         CorsConfig["CorsConfig\n(allows :5173 on /api/**)"]
     end
 
@@ -27,4 +28,15 @@ graph TD
     Controller --> HomeEP
     Controller --> StatusEP
     CorsConfig -.->|"CORS policy"| Controller
+    React -->|"on fetch error"| ErrorState
 ```
+
+## Component Notes
+
+| Component | Details |
+|-----------|---------|
+| React 19 (`App.tsx`) | Single component; `useState<string>` tracks `status`; `useEffect` fires fetch on mount |
+| MWC import | Per-component: `@material/web/labs/card/filled-card.js` (not the bulk `all.js`) |
+| Vite proxy | `vite.config.ts` maps `/api/*` → `http://localhost:8080`; no env var needed in dev |
+| Error handling | `.catch()` in `useEffect` sets `status` to a user-visible failure message |
+| CORS | `CorsConfig` permits `GET, POST, OPTIONS` from `http://localhost:5173` on `/api/**` |

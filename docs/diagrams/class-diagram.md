@@ -27,6 +27,17 @@ classDiagram
         +getLinks() Links
     }
 
+    class HalLinks {
+        <<JSON shape>>
+        +self: HalLink
+        +status: HalLink
+    }
+
+    class HalLink {
+        <<JSON shape>>
+        +href: String
+    }
+
     class CorsConfig {
         <<Configuration>>
         +addCorsMappings(CorsRegistry registry)
@@ -37,6 +48,9 @@ classDiagram
     }
 
     HomeResource --|> RepresentationModel : extends
+    HomeResource "1" --> "1..*" HalLinks : serialized as _links
+    HalLinks --> HalLink : self
+    HalLinks --> HalLink : status
     CorsConfig ..|> WebMvcConfigurer : implements
     ApiController --> HomeResource : creates
 ```
@@ -45,7 +59,19 @@ classDiagram
 
 | File | Role |
 |------|------|
-| `App.tsx` | Root component; fetches `/api/v1/home` via `useEffect`, passes status string to render |
+| `App.tsx` | Root component; `useState<string>('Loading...')` holds `status`; `useEffect` fetches `/api/v1/home` on mount, calls `setStatus(data.status)` on success or `setStatus('Failed to load status.')` on error |
 | `main.tsx` | React entry point; mounts `<App />` into `#root` |
-| `global.d.ts` | TypeScript ambient declarations for Material Web custom elements |
-| `types/HalHome.ts` | TypeScript interface for the HAL+JSON `HomeResource` response shape |
+| `global.d.ts` | TypeScript ambient declarations for Material Web custom elements (`md-filled-card`) |
+| `types/HalHome.ts` | TypeScript interface for the HAL+JSON response: `{ status: string; _links: { self: { href: string }; status: { href: string } } }` |
+
+## HAL+JSON Response Shape
+
+```json
+{
+  "status": "Everything is working.",
+  "_links": {
+    "self":   { "href": "http://localhost:8080/api/v1/home" },
+    "status": { "href": "http://localhost:8080/api/v1/status" }
+  }
+}
+```
