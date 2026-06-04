@@ -25,29 +25,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React version in root `README.md` corrected from React 18 to React 19.2.6, matching `frontend/package.json` (PR #1)
 
 ### Security
-
-## [0.2.0] - 2026-06-03
-
-### Added
-- HAL (Hypermedia Application Language) REST API providing hypermedia-driven resource navigation for the Encounters of the Void backend.
-- React frontend providing the initial user interface for the application.
-
-## [0.0.1-SNAPSHOT] - 2026-06-03
-
-### Added
-- Spring Boot 3.3.0 HAL+JSON REST API with base path `/api/v1/`
-- `GET /api/v1/status` endpoint returning `{"status": "Everything is working."}`
-- `GET /api/v1/home` endpoint returning HAL+JSON `HomeResource` with `_links` (self, status)
-- `HomeResource` model extending Spring HATEOAS `RepresentationModel`
-- CORS configuration allowing `http://localhost:5173` on `/api/**` paths (GET, POST, OPTIONS)
-- React 19 + TypeScript + Vite frontend scaffold in `/frontend/`
-- Material Web Components integration (`@material/web ^2.4.1`) with `md-filled-card` usage
-- Vite dev server proxy: `/api/*` → `http://localhost:8080` (via `vite.config.ts`)
-- `useEffect` hook in `App.tsx` fetching `/api/v1/home` and rendering HAL status field
-- Spring Boot integration tests (`ApiControllerTest`) using `MockMvc`
-- Frontend Vitest + React Testing Library tests (`App.test.tsx`)
-- Maven wrapper (`mvnw` / `mvnw.cmd`) for zero-install builds
-- README with prerequisites, local run instructions, and project overview
-
-[Unreleased]: https://github.com/VoidfulDawn/Encounters_of_the_Void/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/VoidfulDawn/Encounters_of_the_Void/releases/tag/v0.2.0
