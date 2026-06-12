@@ -64,6 +64,53 @@ curl -H "Accept: application/hal+json" http://localhost:8080/api/v1/home
 └── README.md
 ```
 
+## Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose
+
+### Required Environment Variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_NAME` | Database name | `encounters` |
+| `DB_USER` | Database username | — |
+| `DB_PASSWORD` | Database password | — |
+| `FRONTEND_ORIGIN` | Allowed CORS origin (e.g. `https://example.com`) | `http://localhost` |
+
+### Build and Start
+
+```bash
+docker compose up --build
+```
+
+The application is served at `http://localhost` (port 80).
+
+### Switching Spring Profiles
+
+Set `SPRING_PROFILES_ACTIVE` in the backend service environment. The default in `docker-compose.yml` is `prod`.
+
+To run with the test profile via CLI:
+
+```bash
+docker compose run -e SPRING_PROFILES_ACTIVE=test backend
+```
+
+### Running Tests with Default Profile
+
+```bash
+./mvnw test
+```
+
+To run tests explicitly with the test profile:
+
+```bash
+./mvnw test -Dspring.profiles.active=test
+```
+
 ## Running Tests
 
 **Backend:**
