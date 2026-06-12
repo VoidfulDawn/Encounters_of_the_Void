@@ -1,28 +1,44 @@
 classDiagram
-    class HomeResource {
-        -String status
-        +HomeResource(String status)
-        +getStatus() String
-    }
-
-    class RepresentationModel {
+    class CollectionModel {
         <<Spring HATEOAS>>
-        +add(Link link)
+        +of(content, links) CollectionModel
+        +getContent() Collection
         +getLinks() Links
     }
 
-    class HalLinks {
-        <<JSON _links shape>>
-        +self HalLink
-        +status HalLink
+    class EntityModel {
+        <<Spring HATEOAS>>
+        +of(content, links) EntityModel
+        +getContent() T
+        +getLinks() Links
     }
 
-    class HalLink {
-        <<JSON shape>>
-        +href String
+    class Link {
+        <<Spring HATEOAS>>
+        +getRel() LinkRelation
+        +getHref() String
     }
 
-    HomeResource --|> RepresentationModel : extends
-    HomeResource "1" --> "1" HalLinks : serialized as _links
-    HalLinks --> HalLink : self
-    HalLinks --> HalLink : status
+    class UsersController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class LayoutsController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class CampaignsController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class TemplatesController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    CollectionModel "1" --> "0..*" EntityModel : contains
+    CollectionModel "1" --> "1" Link : self rel
+    EntityModel "1" --> "1" Link : self rel
+    UsersController --> CollectionModel : returns
+    LayoutsController --> CollectionModel : returns
+    CampaignsController --> CollectionModel : returns
+    TemplatesController --> CollectionModel : returns

@@ -1,26 +1,29 @@
 sequenceDiagram
-    participant Browser
-    participant React as React App (App.tsx)
-    participant ViteProxy as Vite Proxy (:5173)
-    participant API as ApiController (:8080)
+    participant Client
+    participant GW as Gateway :8080
+    participant US as user-service :8081
+    participant LS as layout-service :8082
+    participant CS as campaign-service :8083
+    participant TS as template-service :8084
 
-    Browser->>React: page load
-    React->>React: useState("Loading...")
-    React->>React: useEffect fires
+    Client->>+GW: GET /api/users/ (Accept: application/hal+json)
+    GW->>GW: match route Path=/api/users/**
+    GW->>+US: GET /api/users/ (forwarded)
+    US->>US: UsersController.getAll()
+    US-->>-GW: 200 HAL+JSON {"_embedded":{},"_links":{"self":{"href":"http://localhost:8081/api/users/"}}}
+    GW-->>-Client: 200 HAL+JSON
 
-    React->>+ViteProxy: fetch /api/v1/home
-    ViteProxy->>+API: GET /api/v1/home (Accept: application/hal+json)
-    API->>API: new HomeResource("Everything is working.")
-    API->>API: resource.add(self link)
-    API->>API: resource.add(status link)
-    API-->>-ViteProxy: 200 HAL+JSON {status, _links:{self, status}}
-    ViteProxy-->>-React: 200 HAL+JSON response
+    Client->>+GW: GET /api/layouts/
+    GW->>+LS: GET /api/layouts/ (forwarded)
+    LS-->>-GW: 200 HAL+JSON {"_embedded":{},"_links":{"self":{"href":"http://localhost:8082/api/layouts/"}}}
+    GW-->>-Client: 200 HAL+JSON
 
-    React->>React: setStatus(data.status)
-    React->>Browser: render md-filled-card with status message
+    Client->>+GW: GET /api/campaigns/
+    GW->>+CS: GET /api/campaigns/ (forwarded)
+    CS-->>-GW: 200 HAL+JSON {"_embedded":{},"_links":{"self":{"href":"http://localhost:8083/api/campaigns/"}}}
+    GW-->>-Client: 200 HAL+JSON
 
-    note over React,API: Error path — fetch failure
-    React->>+ViteProxy: fetch /api/v1/home
-    ViteProxy-->>-React: network error or non-2xx
-    React->>React: catch block → setError(err.message or "Unknown error")
-    React->>Browser: render p.error with error message
+    Client->>+GW: GET /api/templates/
+    GW->>+TS: GET /api/templates/ (forwarded)
+    TS-->>-GW: 200 HAL+JSON {"_embedded":{},"_links":{"self":{"href":"http://localhost:8084/api/templates/"}}}
+    GW-->>-Client: 200 HAL+JSON

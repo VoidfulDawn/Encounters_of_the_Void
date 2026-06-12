@@ -1,35 +1,54 @@
 graph TB
-    subgraph backend ["Backend — com.voidfuldawn.encountersofthevoid"]
-        App["EncountersOfTheVoidApplication\n(entry point)"]
-        Controller["ApiController\n/api/v1/home  /api/v1/status"]
-        Model["HomeResource\nextends RepresentationModel"]
-        Config["CorsConfig\nimplements WebMvcConfigurer"]
+    subgraph root ["Root POM - com.voidfuldawn:encounters-of-the-void"]
+        RootPOM["pom.xml\npackaging=pom\nSpring Boot 3.3.0 parent\nSpring Cloud 2023.0.3 BOM"]
     end
 
-    subgraph frontend ["Frontend — src/"]
-        MainTSX["main.tsx\n(React entry, mounts App)"]
-        AppTSX["App.tsx\n(root component, fetch + render)"]
-        Types["types/HalHome.ts\n(TypeScript HAL interface)"]
-        GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
+    subgraph gateway_mod ["gateway :8080"]
+        GWApp["GatewayApplication\n@SpringBootApplication"]
+        GWYaml["application.yaml\nroutes: users/layouts/campaigns/templates"]
+        GWDocker["Dockerfile\neclipse-temurin:21 jdk to jre-alpine"]
     end
 
-    subgraph deployment ["Deployment — Docker"]
-        DockerBE["Dockerfile\n(eclipse-temurin:21-jdk → jre-alpine)"]
-        DockerFE["frontend/Dockerfile\n(node:20-alpine → nginx:alpine)"]
-        NginxConf["frontend/nginx/nginx.conf\n(/api/ proxy → backend:8080)"]
-        Compose["docker-compose.yml\n(networks: frontend, backend)"]
-        ProfProd["application-prod.yaml\n(server.address=0.0.0.0\nCORS: FRONTEND_ORIGIN)"]
-        ProfTest["application-test.yaml\n(CORS: *)"]
+    subgraph user_mod ["user-service :8081"]
+        UApp["Application\n@SpringBootApplication"]
+        UC["UsersController\nGET /api/users/"]
+        UYaml["application.yaml\ndefault/prod/test profiles"]
+        UDocker["Dockerfile\neclipse-temurin:21 jdk to jre-alpine"]
     end
 
-    App --> Controller
-    App --> Config
-    Controller --> Model
-    MainTSX --> AppTSX
-    AppTSX --> Types
-    AppTSX --> GlobalD
-    Compose --> DockerBE
-    Compose --> DockerFE
-    DockerFE --> NginxConf
-    ProfProd -.->|"prod profile"| Config
-    ProfTest -.->|"test profile"| Config
+    subgraph layout_mod ["layout-service :8082"]
+        LApp["Application\n@SpringBootApplication"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LYaml["application.yaml\ndefault/prod/test profiles"]
+        LDocker["Dockerfile\neclipse-temurin:21 jdk to jre-alpine"]
+    end
+
+    subgraph campaign_mod ["campaign-service :8083"]
+        CApp["Application\n@SpringBootApplication"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CYaml["application.yaml\ndefault/prod/test profiles"]
+        CDocker["Dockerfile\neclipse-temurin:21 jdk to jre-alpine"]
+    end
+
+    subgraph template_mod ["template-service :8084"]
+        TApp["Application\n@SpringBootApplication"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TYaml["application.yaml\ndefault/prod/test profiles"]
+        TDocker["Dockerfile\neclipse-temurin:21 jdk to jre-alpine"]
+    end
+
+    RootPOM --> gateway_mod
+    RootPOM --> user_mod
+    RootPOM --> layout_mod
+    RootPOM --> campaign_mod
+    RootPOM --> template_mod
+
+    GWApp --> GWYaml
+    UApp --> UC
+    UApp --> UYaml
+    LApp --> LC
+    LApp --> LYaml
+    CApp --> CC
+    CApp --> CYaml
+    TApp --> TC
+    TApp --> TYaml

@@ -1,8 +1,72 @@
 # Architecture — Encounters of the Void
 
-System overview for the Spring Boot HAL API + React frontend stack.
+System overview for the Encounters of the Void Maven multi-module microservices stack.
 
-## System Architecture
+## Multi-Module SCS Architecture (TECH-012)
+
+Maven multi-module project with a Spring Cloud Gateway entry point routing to four self-contained Spring Boot microservices. Each SCS serves a HAL+JSON collection endpoint.
+
+```mermaid
+graph LR
+    Client["Client"]
+
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway"]
+    end
+
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev / PG prod")]
+    end
+
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev / PG prod")]
+    end
+
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev / PG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev / PG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**"| UC
+    Gateway -->|"/api/layouts/**"| LC
+    Gateway -->|"/api/campaigns/**"| CC
+    Gateway -->|"/api/templates/**"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB
+```
+
+Source: [`docs/diagrams/architecture.mmd`](diagrams/architecture.mmd) | Full detail: [`docs/diagrams/architecture.md`](diagrams/architecture.md)
+
+### Gateway Route Configuration
+
+| Route ID | Path Predicate | Upstream URI |
+|----------|---------------|--------------|
+| user-service | `/api/users/**` | `http://localhost:8081` |
+| layout-service | `/api/layouts/**` | `http://localhost:8082` |
+| campaign-service | `/api/campaigns/**` | `http://localhost:8083` |
+| template-service | `/api/templates/**` | `http://localhost:8084` |
+
+### SCS Datasource Profiles
+
+| Profile | Datasource | DDL |
+|---------|-----------|-----|
+| default (dev) | H2 in-memory | `update` |
+| `prod` | PostgreSQL via env vars | `validate` |
+| `test` | H2 in-memory | `create-drop` |
+
+---
+
+## Legacy Monolith Architecture (pre-TECH-012)
 
 Overall topology: browser loads the React/Vite frontend, which proxies API calls to the Spring Boot backend.
 
@@ -77,9 +141,29 @@ sequenceDiagram
 
 Source: [`docs/diagrams/sequence-diagram.md`](diagrams/sequence-diagram.md)
 
-## API Flow (Development)
+## SCS API Flow (TECH-012)
 
-HAL home fetch (happy path and error path):
+Gateway receives a request, matches a route predicate, and forwards to the appropriate self-contained service which returns a HAL+JSON collection response:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant GW as Gateway :8080
+    participant US as user-service :8081
+
+    Client->>+GW: GET /api/users/ (Accept: application/hal+json)
+    GW->>GW: match route Path=/api/users/**
+    GW->>+US: GET /api/users/ (forwarded)
+    US->>US: UsersController.getAll()
+    US-->>-GW: 200 HAL+JSON {"_embedded":{},"_links":{"self":{"href":"http://localhost:8081/api/users/"}}}
+    GW-->>-Client: 200 HAL+JSON
+```
+
+Source: [`docs/diagrams/api-flow.mmd`](diagrams/api-flow.mmd) | Full flows: [`docs/diagrams/sequence-diagram.md`](diagrams/sequence-diagram.md)
+
+### Legacy Monolith API Flow (pre-TECH-012)
+
+HAL home fetch through React/Vite dev server to the monolith backend:
 
 ```mermaid
 sequenceDiagram
@@ -103,92 +187,111 @@ sequenceDiagram
     React->>React: setStatus(data.status)
     React->>Browser: render md-filled-card with status message
 
-    note over React,API: Error path — fetch failure
+    note over React,API: Error path - fetch failure
     React->>+ViteProxy: fetch /api/v1/home
     ViteProxy-->>-React: network error or non-2xx
-    React->>React: catch block → setError(err.message or "Unknown error")
+    React->>React: catch block - setError(err.message or Unknown error)
     React->>Browser: render p.error with error message
 ```
 
-Source: [`docs/diagrams/api-flow.mmd`](diagrams/api-flow.mmd)
+## Data Model (TECH-012)
 
-## Data Model
-
-Java model classes and HAL serialisation shape:
+HAL response model used by all four SCS controllers — each returns a `CollectionModel<EntityModel<String>>` with a self link. No JPA entities exist in the current skeleton implementation.
 
 ```mermaid
 classDiagram
-    class HomeResource {
-        -String status
-        +HomeResource(String status)
-        +getStatus() String
-    }
-
-    class RepresentationModel {
+    class CollectionModel {
         <<Spring HATEOAS>>
-        +add(Link link)
+        +of(content, links) CollectionModel
+        +getContent() Collection
         +getLinks() Links
     }
 
-    class HalLinks {
-        <<JSON _links shape>>
-        +self HalLink
-        +status HalLink
+    class EntityModel {
+        <<Spring HATEOAS>>
+        +of(content, links) EntityModel
+        +getContent() T
+        +getLinks() Links
     }
 
-    class HalLink {
-        <<JSON shape>>
-        +href String
+    class Link {
+        <<Spring HATEOAS>>
+        +getRel() LinkRelation
+        +getHref() String
     }
 
-    HomeResource --|> RepresentationModel : extends
-    HomeResource "1" --> "1" HalLinks : serialized as _links
-    HalLinks --> HalLink : self
-    HalLinks --> HalLink : status
+    class UsersController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class LayoutsController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class CampaignsController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    class TemplatesController {
+        +getAll() ResponseEntity~CollectionModel~
+    }
+
+    CollectionModel "1" --> "0..*" EntityModel : contains
+    CollectionModel "1" --> "1" Link : self rel
+    EntityModel "1" --> "1" Link : self rel
+    UsersController --> CollectionModel : returns
+    LayoutsController --> CollectionModel : returns
+    CampaignsController --> CollectionModel : returns
+    TemplatesController --> CollectionModel : returns
 ```
 
-Source: [`docs/diagrams/data-model.mmd`](diagrams/data-model.mmd)
+Source: [`docs/diagrams/data-model.mmd`](diagrams/data-model.mmd) | Full detail: [`docs/diagrams/class-diagram.md`](diagrams/class-diagram.md)
 
-## Component Breakdown
+## Component Breakdown (TECH-012)
 
-Module-level component map:
+Maven multi-module component map showing all five new modules:
 
 ```mermaid
 graph TB
-    subgraph backend ["Backend — com.voidfuldawn.encountersofthevoid"]
-        App["EncountersOfTheVoidApplication\n(entry point)"]
-        Controller["ApiController\n/api/v1/home  /api/v1/status"]
-        Model["HomeResource\nextends RepresentationModel"]
-        Config["CorsConfig\nimplements WebMvcConfigurer"]
+    subgraph root ["Root POM - com.voidfuldawn:encounters-of-the-void"]
+        RootPOM["pom.xml\npackaging=pom\nSpring Boot 3.3.0 parent\nSpring Cloud 2023.0.3 BOM"]
     end
 
-    subgraph frontend ["Frontend — src/"]
-        MainTSX["main.tsx\n(React entry, mounts App)"]
-        AppTSX["App.tsx\n(root component, fetch + render)"]
-        Types["types/HalHome.ts\n(TypeScript HAL interface)"]
-        GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
+    subgraph gateway_mod ["gateway :8080"]
+        GWApp["GatewayApplication\n@SpringBootApplication"]
+        GWYaml["application.yaml\nroutes: users/layouts/campaigns/templates"]
     end
 
-    subgraph deployment ["Deployment — Docker"]
-        DockerBE["Dockerfile\n(eclipse-temurin:21-jdk → jre-alpine)"]
-        DockerFE["frontend/Dockerfile\n(node:20-alpine → nginx:alpine)"]
-        NginxConf["frontend/nginx/nginx.conf\n(/api/ proxy → backend:8080)"]
-        Compose["docker-compose.yml\n(networks: frontend, backend)"]
-        ProfProd["application-prod.yaml\n(server.address=0.0.0.0\nCORS: FRONTEND_ORIGIN)"]
-        ProfTest["application-test.yaml\n(CORS: *)"]
+    subgraph user_mod ["user-service :8081"]
+        UApp["Application\n@SpringBootApplication"]
+        UC["UsersController\nGET /api/users/"]
     end
 
-    App --> Controller
-    App --> Config
-    Controller --> Model
-    MainTSX --> AppTSX
-    AppTSX --> Types
-    AppTSX --> GlobalD
-    Compose --> DockerBE
-    Compose --> DockerFE
-    DockerFE --> NginxConf
-    ProfProd -.->|"prod profile"| Config
-    ProfTest -.->|"test profile"| Config
+    subgraph layout_mod ["layout-service :8082"]
+        LApp["Application\n@SpringBootApplication"]
+        LC["LayoutsController\nGET /api/layouts/"]
+    end
+
+    subgraph campaign_mod ["campaign-service :8083"]
+        CApp["Application\n@SpringBootApplication"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+    end
+
+    subgraph template_mod ["template-service :8084"]
+        TApp["Application\n@SpringBootApplication"]
+        TC["TemplatesController\nGET /api/templates/"]
+    end
+
+    RootPOM --> gateway_mod
+    RootPOM --> user_mod
+    RootPOM --> layout_mod
+    RootPOM --> campaign_mod
+    RootPOM --> template_mod
+    GWApp --> GWYaml
+    UApp --> UC
+    LApp --> LC
+    CApp --> CC
+    TApp --> TC
 ```
 
 Source: [`docs/diagrams/component.mmd`](diagrams/component.mmd)
