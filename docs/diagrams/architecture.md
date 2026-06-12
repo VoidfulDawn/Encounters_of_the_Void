@@ -2,6 +2,72 @@
 
 System topology for Encounters of the Void.
 
+## Multi-Module SCS Architecture (TECH-012)
+
+Maven multi-module project with a Spring Cloud Gateway entry point routing to four self-contained Spring Boot microservices.
+
+```mermaid
+graph LR
+    Client["Client"]
+
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway"]
+    end
+
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev\nPG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**"| UC
+    Gateway -->|"/api/layouts/**"| LC
+    Gateway -->|"/api/campaigns/**"| CC
+    Gateway -->|"/api/templates/**"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB
+```
+
+### Gateway Route Configuration (`gateway/src/main/resources/application.yaml`)
+
+| Route ID | Path Predicate | Upstream URI |
+|----------|---------------|--------------|
+| user-service | `/api/users/**` | `http://localhost:8081` |
+| layout-service | `/api/layouts/**` | `http://localhost:8082` |
+| campaign-service | `/api/campaigns/**` | `http://localhost:8083` |
+| template-service | `/api/templates/**` | `http://localhost:8084` |
+
+### SCS Datasource Profiles
+
+| Profile | Datasource | DDL |
+|---------|-----------|-----|
+| default (dev) | H2 in-memory (`jdbc:h2:mem:<service>db`) | `update` |
+| `prod` | PostgreSQL via `DB_HOST/DB_PORT/DB_NAME_*/DB_USER/DB_PASS` env vars | `validate` |
+| `test` | H2 in-memory (`jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1`) | `create-drop` |
+
+---
+
+## Legacy Monolith + Docker Topology (pre-TECH-012)
+
+The original single-module backend with Vite dev server and Docker Compose deployment.
+
 ```mermaid
 graph TD
     Browser["Browser"]

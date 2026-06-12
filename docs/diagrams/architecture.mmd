@@ -1,31 +1,36 @@
-graph TB
-    Browser["Browser"]
+graph LR
+    Client["Client"]
 
-    subgraph ProdDeploy ["Production — Docker Compose"]
-        FE["frontend\nnginx:alpine\nport 80\n(networks: frontend + backend)"]
-        subgraph network_backend ["network: backend (internal-only)"]
-            BE["backend\neclipse-temurin:21-jre-alpine\nSpring Boot :8080"]
-        end
-        FE -->|"/api/ proxy"| BE
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway"]
     end
 
-    subgraph LocalDev ["Development — Local"]
-        Vite["Vite Dev Server :5173\n(proxy /api/* → :8080)"]
-        React["React 19 App\n(App.tsx)"]
-        MWC["@material/web\nmd-filled-card"]
-        SpringDev["Spring Boot :8080\n(profile: test, H2 in-memory)"]
-        CorsConfig["CorsConfig\n(allows :5173 on /api/**)"]
-        ErrorState["Error State\n(p.error on fetch failure)"]
-        Vite --> React
-        React --> MWC
-        React -->|"fetch /api/v1/home"| Vite
-        Vite -->|"proxy /api/*"| SpringDev
-        CorsConfig -.->|"CORS policy"| SpringDev
-        React -->|"on fetch error"| ErrorState
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev / PG prod")]
     end
 
-    PG[("PostgreSQL\nexternal")]
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev / PG prod")]
+    end
 
-    Browser -->|"HTTP :80"| FE
-    BE -->|"JDBC"| PG
-    Browser -->|"HTTP :5173"| Vite
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev / PG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev / PG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**"| UC
+    Gateway -->|"/api/layouts/**"| LC
+    Gateway -->|"/api/campaigns/**"| CC
+    Gateway -->|"/api/templates/**"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB
