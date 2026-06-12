@@ -15,8 +15,8 @@ classDiagram
     }
 
     namespace userservice {
-        class UserApplication {
-            <<Application>>
+        class Application {
+            <<SpringBootApplication>>
             +main(String[] args)
         }
         class UsersController {
@@ -27,8 +27,8 @@ classDiagram
     }
 
     namespace layoutservice {
-        class LayoutApplication {
-            <<Application>>
+        class Application {
+            <<SpringBootApplication>>
             +main(String[] args)
         }
         class LayoutsController {
@@ -39,8 +39,8 @@ classDiagram
     }
 
     namespace campaignservice {
-        class CampaignApplication {
-            <<Application>>
+        class Application {
+            <<SpringBootApplication>>
             +main(String[] args)
         }
         class CampaignsController {
@@ -51,8 +51,8 @@ classDiagram
     }
 
     namespace templateservice {
-        class TemplateApplication {
-            <<Application>>
+        class Application {
+            <<SpringBootApplication>>
             +main(String[] args)
         }
         class TemplatesController {
