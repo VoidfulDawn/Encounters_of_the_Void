@@ -169,12 +169,26 @@ graph TB
         GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
     end
 
+    subgraph deployment ["Deployment — Docker"]
+        DockerBE["Dockerfile\n(eclipse-temurin:21-jdk → jre-alpine)"]
+        DockerFE["frontend/Dockerfile\n(node:20-alpine → nginx:alpine)"]
+        NginxConf["frontend/nginx/nginx.conf\n(/api/ proxy → backend:8080)"]
+        Compose["docker-compose.yml\n(networks: frontend, backend)"]
+        ProfProd["application-prod.yaml\n(server.address=0.0.0.0\nCORS: FRONTEND_ORIGIN)"]
+        ProfTest["application-test.yaml\n(CORS: *)"]
+    end
+
     App --> Controller
     App --> Config
     Controller --> Model
     MainTSX --> AppTSX
     AppTSX --> Types
     AppTSX --> GlobalD
+    Compose --> DockerBE
+    Compose --> DockerFE
+    DockerFE --> NginxConf
+    ProfProd -.->|"prod profile"| Config
+    ProfTest -.->|"test profile"| Config
 ```
 
 Source: [`docs/diagrams/component.mmd`](diagrams/component.mmd)
