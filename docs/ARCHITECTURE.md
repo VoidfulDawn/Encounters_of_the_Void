@@ -44,13 +44,11 @@ Containerised deployment via Docker Compose (TECH-004). The Nginx frontend conta
 ```mermaid
 graph TD
   subgraph DockerHost["Docker Host"]
-    subgraph network_frontend["network: frontend (bridge)"]
-      FE["frontend\nnginx:alpine\nport 80"]
-    end
-    subgraph network_backend["network: backend (internal)"]
+    FE["frontend\nnginx:alpine\nport 80\n(networks: frontend + backend)"]
+    subgraph network_backend["network: backend (internal-only)"]
       BE["backend\neclipse-temurin:21-jre-alpine\nport 8080"]
     end
-    FE -->|"/api/* proxy"| BE
+    FE -->|"/api/ proxy"| BE
   end
   Browser -->|"HTTP :80"| FE
   BE -->|"JDBC"| PG[("PostgreSQL\nexternal")]

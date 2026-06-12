@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Containerised deployment: multi-stage Dockerfiles for backend (eclipse-temurin:21-jdk builder → eclipse-temurin:21-jre-alpine runtime) and frontend (node:20-alpine builder → nginx:alpine runtime) (TECH-004)
 - Docker Compose with isolated `frontend` (bridge) and `backend` (internal-only) networks; frontend exposed on port 80 (TECH-004)
 - Spring profiles: `test` (H2 in-memory DB, permissive CORS for `localhost:5173`) and `prod` (PostgreSQL via `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` env vars, restricted CORS via `FRONTEND_ORIGIN`) (TECH-004)
-- Nginx reverse proxy: serves static React build assets and forwards `/api/*` requests to backend service (TECH-004)
-- Architecture documentation: Mermaid diagram files (`architecture.mmd`, `api-flow.mmd`, `data-model.mmd`, `component.mmd`) and `ARCHITECTURE.md` in `docs/diagrams/` (TECH-002)
+- Nginx reverse proxy: serves static React build assets and forwards `/api/` requests to backend service (TECH-004)
+- Architecture documentation: Mermaid diagram files (`architecture.mmd`, `api-flow.mmd`, `data-model.mmd`, `component.mmd`) in `docs/diagrams/` and `docs/ARCHITECTURE.md` with production deployment topology and API flow sections (TECH-002, TECH-004)
+- Production deployment topology and API flow diagrams added to `docs/ARCHITECTURE.md`, reflecting Docker Compose network isolation (frontend bridges both networks; backend on internal-only network)
 - `homeEndpointReturnsHalJsonWithSelfLink` test in `ApiControllerTest` asserting both `_links.self.href` and `_links.status.href` are non-empty in HAL response (PR #1 — branch `pr-1`)
 - Error-path test in `App.test.tsx` covering fetch failure → caught error → user-visible error state render (PR #1)
 
