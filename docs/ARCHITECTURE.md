@@ -37,7 +37,49 @@ graph TB
 
 Source: [`docs/diagrams/architecture.mmd`](diagrams/architecture.mmd)
 
-## API Flow
+## Production Deployment
+
+Containerised deployment via Docker Compose (TECH-004). The Nginx frontend container is the sole public entry point on port 80; the Spring Boot backend is on an internal-only network unreachable from outside Docker.
+
+```mermaid
+graph TD
+  subgraph DockerHost["Docker Host"]
+    subgraph network_frontend["network: frontend (bridge)"]
+      FE["frontend\nnginx:alpine\nport 80"]
+    end
+    subgraph network_backend["network: backend (internal)"]
+      BE["backend\neclipse-temurin:21-jre-alpine\nport 8080"]
+    end
+    FE -->|"/api/* proxy"| BE
+  end
+  Browser -->|"HTTP :80"| FE
+  BE -->|"JDBC"| PG[("PostgreSQL\nexternal")]
+```
+
+Source: [`docs/diagrams/architecture.mmd`](diagrams/architecture.mmd)
+
+## Production API Flow
+
+Browser request proxied through Nginx to the Spring Boot backend over the internal Docker network:
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Nginx as Nginx (frontend :80)
+    participant Backend as Spring Boot (backend :8080)
+    participant DB as PostgreSQL (external)
+
+    User->>+Nginx: GET /api/v1/home
+    Nginx->>+Backend: GET /api/v1/home (proxy_pass)
+    Backend->>+DB: JDBC query (prod profile)
+    DB-->>-Backend: ResultSet
+    Backend-->>-Nginx: 200 HAL+JSON {status, _links:{self, status}}
+    Nginx-->>-User: 200 HAL+JSON
+```
+
+Source: [`docs/diagrams/sequence-diagram.md`](diagrams/sequence-diagram.md)
+
+## API Flow (Development)
 
 HAL home fetch (happy path and error path):
 
