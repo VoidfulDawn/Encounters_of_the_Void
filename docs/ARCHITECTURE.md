@@ -13,7 +13,7 @@ graph LR
     Client["Client"]
 
     subgraph GW ["gateway :8080"]
-        Gateway["GatewayApplication\nSpring Cloud Gateway 2023.0.3"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway 2024.0.1"]
     end
 
     subgraph US ["user-service :8081"]
@@ -292,29 +292,30 @@ Docker Compose (dev) / Kubernetes (prod target)
 The codebase is in an early bootstrapping phase. The following components
 exist today:
 
-| Component           | Status            | Notes                                  |
-|---------------------|-------------------|----------------------------------------|
-| Spring Boot app     | Exists (monolith) | Single module, not yet split into SCS  |
-| `ApiController`     | Implemented       | `/api/v1/home`, `/api/v1/status`       |
-| `HomeResource` (HAL)| Implemented       | Extends RepresentationModel            |
-| `CorsConfig`        | Implemented       | Reads `cors.allowed-origins`           |
-| React frontend      | Implemented       | Fetches `/api/v1/home`, MWC card       |
-| Docker Compose      | PR open (TECH-004)| Multi-stage builds, Nginx, profiles    |
-| API Gateway         | Not started       |                                        |
-| SCS split           | Not started       | Monolith refactor → 4 SCS modules      |
-| MobX stores         | Not started       |                                        |
-| Material UI         | Not started       | Currently using @material/web          |
-| PostgreSQL + schemas| Not started       |                                        |
-| OAuth               | Not started       |                                        |
-| Inter-SCS clients   | Not started       |                                        |
+| Component              | Status        | Notes                                                          |
+|------------------------|---------------|----------------------------------------------------------------|
+| Maven multi-module     | Done (TECH-012) | 5 modules: user, layout, campaign, template, gateway         |
+| user-service           | Done (TECH-012) | Skeleton HAL SCS on :8081; H2 dev, PG prod, H2 test profiles |
+| layout-service         | Done (TECH-012) | Skeleton HAL SCS on :8082; same three-profile strategy        |
+| campaign-service       | Done (TECH-012) | Skeleton HAL SCS on :8083; same three-profile strategy        |
+| template-service       | Done (TECH-012) | Skeleton HAL SCS on :8084; same three-profile strategy        |
+| API Gateway            | Done (TECH-012) | Spring Cloud Gateway 2024.0.1 on :8080; four routes wired    |
+| Docker Compose (infra) | Done (TECH-004) | Multi-stage builds, Nginx reverse proxy, Spring profiles      |
+| Shared PostgreSQL DB   | Done (TECH-013) | `infra/docker-compose.db.yml`; four schemas via `init.sql`    |
+| React frontend         | Implemented   | Fetches `/api/v1/home` (legacy monolith endpoint); MWC card   |
+| MobX stores            | Not started   |                                                                |
+| Material UI            | Not started   | Currently using @material/web                                  |
+| Domain entities/repos  | Not started   | JPA entities, Flyway migrations per SCS                        |
+| OAuth                  | Not started   |                                                                |
+| Inter-SCS clients      | Not started   |                                                                |
 
 The migration path:
-1. Merge TECH-004 (Docker infra)
-2. Introduce PostgreSQL + multi-module Maven structure
-3. Extract SCS one by one starting with user-service
-4. Add API Gateway once two SCS exist
-5. Migrate frontend from @material/web → MUI, add MobX
-6. Wire OAuth between frontend and gateway/user-service
+1. ~~Merge TECH-004 (Docker infra)~~ — done
+2. ~~Introduce PostgreSQL + multi-module Maven structure~~ — done (TECH-012, TECH-013)
+3. Add JPA entities, Flyway migrations, and real endpoints to each SCS
+4. Migrate frontend from @material/web → MUI, add MobX
+5. Wire OAuth between frontend and gateway/user-service
+6. Add inter-SCS HTTP clients where needed
 
 ---
 

@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `application-test.yaml` relocated from `src/main/resources` to `src/test/resources` in all four domain modules (TECH-012)
 - Dockerfiles: `RUN mvn -B` changed to `-q` (quiet mode) and `ENTRYPOINT` path changed from absolute `/app/app.jar` to relative `app.jar` across all five modules (TECH-012)
 - Class diagram namespace names corrected from `userservice`/`layoutservice`/`campaignservice`/`templateservice` to `user`/`layout`/`campaign`/`template` matching actual Java package suffixes (TECH-012)
+- `docs/ARCHITECTURE.md` Mermaid diagram corrected: Spring Cloud Gateway version label updated from `2023.0.3` to `2024.0.1` matching `pom.xml`; "Current Implementation State" table updated to reflect completed TECH-004, TECH-012, and TECH-013 work
 
 ### Security
 
