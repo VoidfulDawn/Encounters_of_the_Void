@@ -4,6 +4,51 @@ Agent reference document. Describes the target system design.
 Use this when writing tickets, reviewing code, and proposing implementation plans.
 Always check this document before designing a new feature or service.
 
+## Multi-Module SCS Architecture (TECH-012)
+
+Maven multi-module project: a Spring Cloud Gateway entry point routes traffic to four self-contained Spring Boot microservices. Each service manages its own H2 (dev/test) or PostgreSQL (prod) datasource.
+
+```mermaid
+graph LR
+    Client["Client"]
+
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway 2023.0.3"]
+    end
+
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev/test\nPG prod")]
+    end
+
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev/test\nPG prod")]
+    end
+
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev/test\nPG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev/test\nPG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**\nhttp://user-service:8081"| UC
+    Gateway -->|"/api/layouts/**\nhttp://layout-service:8082"| LC
+    Gateway -->|"/api/campaigns/**\nhttp://campaign-service:8083"| CC
+    Gateway -->|"/api/templates/**\nhttp://template-service:8084"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB
+```
+
+Source: [`docs/diagrams/architecture.md`](diagrams/architecture.md)
+
 ---
 
 ## System Overview

@@ -2,6 +2,74 @@
 
 System topology for Encounters of the Void.
 
+## Multi-Module SCS Architecture (TECH-012)
+
+Maven multi-module project with a Spring Cloud Gateway entry point routing to four self-contained Spring Boot microservices.
+
+> **Versions:** Spring Boot 3.4.1 / Spring Cloud 2024.0.1 / Java 21
+
+```mermaid
+graph LR
+    Client["Client"]
+
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway"]
+    end
+
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev\nPG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev\nPG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**"| UC
+    Gateway -->|"/api/layouts/**"| LC
+    Gateway -->|"/api/campaigns/**"| CC
+    Gateway -->|"/api/templates/**"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB
+```
+
+### Gateway Route Configuration (`gateway/src/main/resources/application.yaml`)
+
+| Route ID | Path Predicate | Upstream URI |
+|----------|---------------|--------------|
+| user-service | `/api/users/**` | `http://user-service:8081` |
+| layout-service | `/api/layouts/**` | `http://layout-service:8082` |
+| campaign-service | `/api/campaigns/**` | `http://campaign-service:8083` |
+| template-service | `/api/templates/**` | `http://template-service:8084` |
+
+### SCS Datasource Profiles
+
+| Profile | Datasource | DDL |
+|---------|-----------|-----|
+| default (dev) | H2 in-memory (`jdbc:h2:mem:<service>db`) | `create-drop` |
+| `prod` | PostgreSQL via `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}` | `validate` |
+| `test` | H2 in-memory (`jdbc:h2:mem:<service>testdb;DB_CLOSE_DELAY=-1`) | `create-drop` |
+
+---
+
+## Legacy Monolith + Docker Topology (pre-TECH-012)
+
+The original single-module backend with Vite dev server and Docker Compose deployment.
+
 ```mermaid
 graph TD
     Browser["Browser"]
@@ -29,6 +97,23 @@ graph TD
     Controller --> StatusEP
     CorsConfig -.->|"CORS policy"| Controller
     React -->|"on fetch error"| ErrorState
+```
+
+## Production Deployment Topology
+
+Docker Compose brings up two containers on isolated networks. The backend is on an internal-only network; the frontend bridges both networks and is the sole public entry point.
+
+```mermaid
+graph TD
+  subgraph DockerHost["Docker Host"]
+    FE["frontend\nnginx:alpine\nport 80\n(networks: frontend + backend)"]
+    subgraph network_backend["network: backend (internal-only)"]
+      BE["backend\neclipse-temurin:21-jre-alpine\nport 8080"]
+    end
+    FE -->|"/api/ proxy"| BE
+  end
+  Browser -->|"HTTP :80"| FE
+  BE -->|"JDBC"| PG[("PostgreSQL\nexternal")]
 ```
 
 ## Component Notes

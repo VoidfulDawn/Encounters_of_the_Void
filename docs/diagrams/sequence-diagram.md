@@ -2,6 +2,46 @@
 
 Request flows through the Encounters of the Void stack.
 
+## Flow 5: Gateway Route Resolution (TECH-012)
+
+Client request enters the Spring Cloud Gateway; the gateway matches the path predicate and proxies to the appropriate SCS.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant GW as Gateway :8080
+    participant SCS as Target SCS (e.g. user-service :8081)
+
+    Client->>+GW: GET /api/users/ (Accept: application/hal+json)
+    GW->>GW: match route predicate Path=/api/users/**
+    GW->>+SCS: GET /api/users/ (forwarded)
+    SCS->>SCS: UsersController.getAll()
+    SCS->>SCS: CollectionModel.of([], selfLink)
+    SCS-->>-GW: 200 HAL+JSON {_embedded:{}, _links:{self}}
+    GW-->>-Client: 200 HAL+JSON
+```
+
+## Flow 6: SCS HAL Collection Response (TECH-012)
+
+Detail of how a self-contained service controller builds and returns a HAL `CollectionModel`.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as UsersController
+    participant HATEOAS as Spring HATEOAS
+
+    Client->>+Controller: GET /api/users/
+    Controller->>HATEOAS: linkTo(methodOn(UsersController).getAll()).withSelfRel()
+    HATEOAS-->>Controller: Link(rel=self, href=/api/users/)
+    Controller->>HATEOAS: CollectionModel.of(emptyList, selfLink)
+    HATEOAS-->>Controller: CollectionModel
+    Controller-->>-Client: 200 application/hal+json
+    Note over Client: {"_embedded":{},"_links":{"self":{"href":"http://localhost:8081/api/users/"}}}
+```
+
+---
+
 ## Flow 1: Happy Path — HAL Home Fetch + Frontend Render
 
 React app starts, fetches the HAL home resource, and renders the status message using a Material Web Component.
@@ -73,4 +113,23 @@ sequenceDiagram
     ViteProxy->>+API: GET /api/v1/status
     API-->>-ViteProxy: 200 {"status": "Everything is working."}
     ViteProxy-->>-Client: 200 {"status": "Everything is working."}
+```
+
+## Flow 4: Production — Proxied API Request via Nginx
+
+Browser hits the Nginx frontend container; `/api/*` requests are forwarded to the backend over the internal Docker network.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Nginx as Nginx (frontend :80)
+    participant Backend as Spring Boot (backend :8080)
+    participant DB as PostgreSQL (external)
+
+    User->>+Nginx: GET /api/v1/home
+    Nginx->>+Backend: GET /api/v1/home (proxy_pass)
+    Backend->>+DB: JDBC query (prod profile)
+    DB-->>-Backend: ResultSet
+    Backend-->>-Nginx: 200 HAL+JSON {status, _links:{self, status}}
+    Nginx-->>-User: 200 HAL+JSON
 ```

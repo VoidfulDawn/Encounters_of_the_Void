@@ -1,5 +1,29 @@
 graph TB
-    subgraph backend ["Backend — com.voidfuldawn.encountersofthevoid"]
+    subgraph multimodule ["Multi-Module SCS (TECH-012)"]
+        GWApp["GatewayApplication\n(entry point :8080)"]
+
+        subgraph us ["user-service :8081"]
+            UsApp["Application\n(@SpringBootApplication)"]
+            UsCtrl["UsersController\nGET /api/users/"]
+        end
+
+        subgraph ls ["layout-service :8082"]
+            LsApp["Application\n(@SpringBootApplication)"]
+            LsCtrl["LayoutsController\nGET /api/layouts/"]
+        end
+
+        subgraph cs ["campaign-service :8083"]
+            CsApp["Application\n(@SpringBootApplication)"]
+            CsCtrl["CampaignsController\nGET /api/campaigns/"]
+        end
+
+        subgraph ts ["template-service :8084"]
+            TsApp["Application\n(@SpringBootApplication)"]
+            TsCtrl["TemplatesController\nGET /api/templates/"]
+        end
+    end
+
+    subgraph backend ["Legacy Monolith Backend — com.voidfuldawn.encountersofthevoid"]
         App["EncountersOfTheVoidApplication\n(entry point)"]
         Controller["ApiController\n/api/v1/home  /api/v1/status"]
         Model["HomeResource\nextends RepresentationModel"]
@@ -13,9 +37,32 @@ graph TB
         GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
     end
 
+    subgraph deployment ["Deployment — Docker"]
+        DockerBE["Dockerfile\n(eclipse-temurin:21-jdk → jre-alpine)"]
+        DockerFE["frontend/Dockerfile\n(node:20-alpine → nginx:alpine)"]
+        NginxConf["frontend/nginx/nginx.conf\n(/api/ proxy → backend:8080)"]
+        Compose["docker-compose.yml\n(networks: frontend, backend)"]
+        ProfProd["application-prod.yaml\n(server.address=0.0.0.0\nCORS: FRONTEND_ORIGIN)"]
+        ProfTest["application-test.yaml\n(CORS: *)"]
+    end
+
+    GWApp -->|"/api/users/**"| UsCtrl
+    GWApp -->|"/api/layouts/**"| LsCtrl
+    GWApp -->|"/api/campaigns/**"| CsCtrl
+    GWApp -->|"/api/templates/**"| TsCtrl
+    UsApp --> UsCtrl
+    LsApp --> LsCtrl
+    CsApp --> CsCtrl
+    TsApp --> TsCtrl
+
     App --> Controller
     App --> Config
     Controller --> Model
     MainTSX --> AppTSX
     AppTSX --> Types
     AppTSX --> GlobalD
+    Compose --> DockerBE
+    Compose --> DockerFE
+    DockerFE --> NginxConf
+    ProfProd -.->|"prod profile"| Config
+    ProfTest -.->|"test profile"| Config

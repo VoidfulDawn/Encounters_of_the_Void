@@ -1,26 +1,36 @@
-graph TB
-    Browser["Browser"]
+graph LR
+    Client["Client"]
 
-    subgraph Frontend ["Frontend (Vite Dev Server :5173)"]
-        Vite["Vite Dev Server\n(proxy /api/* → :8080)"]
-        React["React 19 App\n(App.tsx)"]
-        MWC["@material/web\nmd-filled-card"]
-        ErrorState["Error State\n(p.error on fetch failure)"]
+    subgraph GW ["gateway :8080"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway"]
     end
 
-    subgraph Backend ["Backend (Spring Boot :8080)"]
-        Controller["ApiController\n@RestController /api/v1"]
-        HomeEP["GET /api/v1/home\n→ HAL+JSON HomeResource"]
-        StatusEP["GET /api/v1/status\n→ JSON status"]
-        CorsConfig["CorsConfig\n(allows :5173 on /api/**)"]
+    subgraph US ["user-service :8081"]
+        UC["UsersController\nGET /api/users/"]
+        UDB[("H2 dev / PG prod")]
     end
 
-    Browser -->|"loads UI"| Vite
-    Vite --> React
-    React --> MWC
-    React -->|"fetch /api/v1/home"| Vite
-    Vite -->|"proxy /api/* → :8080"| Controller
-    Controller --> HomeEP
-    Controller --> StatusEP
-    CorsConfig -.->|"CORS policy"| Controller
-    React -->|"on fetch error"| ErrorState
+    subgraph LS ["layout-service :8082"]
+        LC["LayoutsController\nGET /api/layouts/"]
+        LDB[("H2 dev / PG prod")]
+    end
+
+    subgraph CS ["campaign-service :8083"]
+        CC["CampaignsController\nGET /api/campaigns/"]
+        CDB[("H2 dev / PG prod")]
+    end
+
+    subgraph TS ["template-service :8084"]
+        TC["TemplatesController\nGET /api/templates/"]
+        TDB[("H2 dev / PG prod")]
+    end
+
+    Client -->|"HTTP"| Gateway
+    Gateway -->|"/api/users/**"| UC
+    Gateway -->|"/api/layouts/**"| LC
+    Gateway -->|"/api/campaigns/**"| CC
+    Gateway -->|"/api/templates/**"| TC
+    UC --- UDB
+    LC --- LDB
+    CC --- CDB
+    TC --- TDB

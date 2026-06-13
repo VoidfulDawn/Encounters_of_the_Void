@@ -2,6 +2,100 @@
 
 Key Java classes and their relationships.
 
+## Multi-Module SCS Classes (TECH-012)
+
+Entry points and controllers for the 5 new modules, all under `com.voidfuldawn.encountersofthevoid`.
+
+```mermaid
+classDiagram
+    namespace gateway {
+        class GatewayApplication {
+            +main(String[] args)
+        }
+    }
+
+    namespace user {
+        class Application {
+            <<SpringBootApplication>>
+            +main(String[] args)
+        }
+        class UsersController {
+            <<RestController>>
+            <<RequestMapping /api/users>>
+            +getAll() ResponseEntity~CollectionModel~
+        }
+    }
+
+    namespace layout {
+        class Application {
+            <<SpringBootApplication>>
+            +main(String[] args)
+        }
+        class LayoutsController {
+            <<RestController>>
+            <<RequestMapping /api/layouts>>
+            +getAll() ResponseEntity~CollectionModel~
+        }
+    }
+
+    namespace campaign {
+        class Application {
+            <<SpringBootApplication>>
+            +main(String[] args)
+        }
+        class CampaignsController {
+            <<RestController>>
+            <<RequestMapping /api/campaigns>>
+            +getAll() ResponseEntity~CollectionModel~
+        }
+    }
+
+    namespace template {
+        class Application {
+            <<SpringBootApplication>>
+            +main(String[] args)
+        }
+        class TemplatesController {
+            <<RestController>>
+            <<RequestMapping /api/templates>>
+            +getAll() ResponseEntity~CollectionModel~
+        }
+    }
+
+    class CollectionModel {
+        <<Spring HATEOAS>>
+        +of(content, links) CollectionModel
+        +getContent() Collection
+        +getLinks() Links
+    }
+
+    class EntityModel {
+        <<Spring HATEOAS>>
+        +of(content, links) EntityModel
+    }
+
+    UsersController --> CollectionModel : returns
+    LayoutsController --> CollectionModel : returns
+    CampaignsController --> CollectionModel : returns
+    TemplatesController --> CollectionModel : returns
+    CollectionModel --> EntityModel : contains
+```
+
+### HAL+JSON Response Shape (SCS root endpoints)
+
+```json
+{
+  "_embedded": {},
+  "_links": {
+    "self": { "href": "http://localhost:808x/api/<domain>/" }
+  }
+}
+```
+
+---
+
+## Legacy Monolith Classes (pre-TECH-012)
+
 ```mermaid
 classDiagram
     class EncountersOfTheVoidApplication {
@@ -64,7 +158,7 @@ classDiagram
 | `global.d.ts` | TypeScript ambient declarations for Material Web custom elements (`md-filled-card`) |
 | `types/HalHome.ts` | TypeScript interface for the HAL+JSON response: `{ status: string; _links: { self: { href: string }; status: { href: string } } }` |
 
-## HAL+JSON Response Shape
+## HAL+JSON Response Shape (legacy)
 
 ```json
 {
