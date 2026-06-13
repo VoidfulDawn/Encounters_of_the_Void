@@ -1,6 +1,0 @@
-cors:
-  allowed-origins: "*"
-
-logging:
-  level:
-    root: DEBUG

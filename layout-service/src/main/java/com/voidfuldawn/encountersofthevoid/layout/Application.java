@@ -1,4 +1,4 @@
-package com.voidfuldawn.encountersofthevoid.layoutservice;
+package com.voidfuldawn.encountersofthevoid.layout;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

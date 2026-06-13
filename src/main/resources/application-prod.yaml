@@ -1,9 +1,0 @@
-cors:
-  allowed-origins: ${FRONTEND_ORIGIN}
-
-server:
-  address: 0.0.0.0
-
-logging:
-  level:
-    root: INFO

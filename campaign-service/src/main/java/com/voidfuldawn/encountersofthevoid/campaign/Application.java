@@ -1,4 +1,4 @@
-package com.voidfuldawn.encountersofthevoid.templateservice;
+package com.voidfuldawn.encountersofthevoid.campaign;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

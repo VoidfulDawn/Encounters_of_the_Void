@@ -1,7 +1,8 @@
-package com.voidfuldawn.encountersofthevoid.templateservice;
+package com.voidfuldawn.encountersofthevoid.template;
 
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -1,10 +1,10 @@
-package com.voidfuldawn.encountersofthevoid.userservice;
+package com.voidfuldawn.encountersofthevoid.layout;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -12,16 +12,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(value = UsersController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class, SecurityFilterAutoConfiguration.class})
+@SpringBootTest
 @ActiveProfiles("test")
-class UsersControllerTest {
+@AutoConfigureMockMvc
+class LayoutsControllerTest {
 
     @Autowired
     MockMvc mockMvc;
 
     @Test
-    void rootEndpointReturns200WithHal() throws Exception {
-        mockMvc.perform(get("/api/users/"))
+    void contextLoads() {}
+
+    @Test
+    @WithMockUser
+    void getAll_returns200_halJson() throws Exception {
+        mockMvc.perform(get("/api/layouts/"))
                .andExpect(status().isOk())
                .andExpect(content().contentTypeCompatibleWith("application/hal+json"));
     }

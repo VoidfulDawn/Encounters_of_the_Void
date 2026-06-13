@@ -1,22 +1,32 @@
-server:
-  port: 8080
 spring:
+  application:
+    name: gateway
   cloud:
     gateway:
       routes:
         - id: user-service
-          uri: http://localhost:8081
+          uri: http://user-service:8081
           predicates:
             - Path=/api/users/**
         - id: layout-service
-          uri: http://localhost:8082
+          uri: http://layout-service:8082
           predicates:
             - Path=/api/layouts/**
         - id: campaign-service
-          uri: http://localhost:8083
+          uri: http://campaign-service:8083
           predicates:
             - Path=/api/campaigns/**
         - id: template-service
-          uri: http://localhost:8084
+          uri: http://template-service:8084
           predicates:
             - Path=/api/templates/**
+  security:
+    user:
+      password: gateway-password
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+server:
+  port: 8080
