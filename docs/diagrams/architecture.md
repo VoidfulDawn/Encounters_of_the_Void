@@ -6,7 +6,7 @@ System topology for Encounters of the Void.
 
 Maven multi-module project with a Spring Cloud Gateway entry point routing to four self-contained Spring Boot microservices.
 
-> **Versions:** Spring Boot 3.4.1 / Spring Cloud 2024.0.1 / Java 21
+> **Versions:** Spring Boot 3.3.6 / Spring Cloud 2024.0.1 / Java 21
 
 ```mermaid
 graph LR
@@ -63,6 +63,55 @@ graph LR
 | default (dev) | H2 in-memory (`jdbc:h2:mem:<service>db`) | `create-drop` |
 | `prod` | PostgreSQL via `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}` | `validate` |
 | `test` | H2 in-memory (`jdbc:h2:mem:<service>testdb;DB_CLOSE_DELAY=-1`) | `create-drop` |
+
+---
+
+## Shared PostgreSQL Infrastructure (TECH-013)
+
+`infra/docker-compose.db.yml` provides a standalone PostgreSQL 16 container for local development.
+It is intentionally **not** joined to the `backend` Docker network so that Spring services running
+directly on the host (or in an IDE) can reach the database at `localhost:${DB_PORT}`.
+
+```mermaid
+graph TD
+    subgraph infra ["infra/docker-compose.db.yml"]
+        PG["eotv-postgres\npostgres:16-alpine"]
+        VOL[("db_data\nnamed volume")]
+        INIT["infra/db/init.sql\nread-only bind mount"]
+        PG --- VOL
+        INIT -->|"first start"| PG
+    end
+
+    subgraph schemas ["encounters DB — four schemas"]
+        SU["schema_user"]
+        SL["schema_layout"]
+        SC["schema_campaign"]
+        ST["schema_template"]
+    end
+
+    PG --> SU
+    PG --> SL
+    PG --> SC
+    PG --> ST
+
+    US["user-service :8081"] -->|"prod: currentSchema=schema_user"| PG
+    LS["layout-service :8082"] -->|"prod: currentSchema=schema_layout"| PG
+    CS["campaign-service :8083"] -->|"prod: currentSchema=schema_campaign"| PG
+    TS["template-service :8084"] -->|"prod: currentSchema=schema_template"| PG
+```
+
+### Environment Variables (`.env.example`)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DB_HOST` | Hostname or IP of the Postgres node | `localhost` |
+| `DB_PORT` | TCP port | `5432` |
+| `DB_NAME` | Database name | `encounters` |
+| `DB_USER` | Postgres superuser role (Docker Compose) | `eotv_user` |
+| `DB_USERNAME` | Datasource username for Spring services | `eotv_user` |
+| `DB_PASSWORD` | Database password | *(secret)* |
+
+> `DB_USER` configures the Postgres container; `DB_USERNAME` is read by each SCS `application-prod.yaml`.
 
 ---
 

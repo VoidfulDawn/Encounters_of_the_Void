@@ -7,23 +7,25 @@ graph LR
 
     subgraph US ["user-service :8081"]
         UC["UsersController\nGET /api/users/"]
-        UDB[("H2 dev / PG prod")]
+        UDB[("H2 dev\nschema_user prod")]
     end
 
     subgraph LS ["layout-service :8082"]
         LC["LayoutsController\nGET /api/layouts/"]
-        LDB[("H2 dev / PG prod")]
+        LDB[("H2 dev\nschema_layout prod")]
     end
 
     subgraph CS ["campaign-service :8083"]
         CC["CampaignsController\nGET /api/campaigns/"]
-        CDB[("H2 dev / PG prod")]
+        CDB[("H2 dev\nschema_campaign prod")]
     end
 
     subgraph TS ["template-service :8084"]
         TC["TemplatesController\nGET /api/templates/"]
-        TDB[("H2 dev / PG prod")]
+        TDB[("H2 dev\nschema_template prod")]
     end
+
+    PG[("PostgreSQL 16\neotv-postgres\ninfra/docker-compose.db.yml")]
 
     Client -->|"HTTP"| Gateway
     Gateway -->|"/api/users/**"| UC
@@ -34,3 +36,7 @@ graph LR
     LC --- LDB
     CC --- CDB
     TC --- TDB
+    UDB -.->|"prod profile"| PG
+    LDB -.->|"prod profile"| PG
+    CDB -.->|"prod profile"| PG
+    TDB -.->|"prod profile"| PG

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Maven multi-module root `pom.xml` restructured as aggregator (packaging: `pom`) with 5 sibling modules: `user-service`, `layout-service`, `campaign-service`, `template-service`, `gateway`; Spring Boot 3.4.1 parent + Spring Cloud 2024.0.1 BOM managed in `dependencyManagement` (TECH-012, Closes #11)
+- Maven multi-module root `pom.xml` restructured as aggregator (packaging: `pom`) with 5 sibling modules: `user-service`, `layout-service`, `campaign-service`, `template-service`, `gateway`; Spring Boot 3.3.6 parent + Spring Cloud 2024.0.1 BOM managed in `dependencyManagement` (TECH-012, Closes #11)
 - `user-service` (port 8081) — Spring Boot HAL microservice; `UsersController` serves `GET /api/users/` returning `CollectionModel<EntityModel<String>>` with HAL self link; H2 in-memory default datasource (`userdb`, `create-drop`), PostgreSQL prod datasource via `${DB_URL}`/`${DB_USERNAME}`/`${DB_PASSWORD}`, H2 in-memory test datasource (`usertestdb`) (TECH-012)
 - `layout-service` (port 8082) — Spring Boot HAL microservice; `LayoutsController` serves `GET /api/layouts/` returning `CollectionModel<EntityModel<String>>`; same three-profile datasource strategy as user-service (`layoutdb` default) (TECH-012)
 - `campaign-service` (port 8083) — Spring Boot HAL microservice; `CampaignsController` serves `GET /api/campaigns/` returning `CollectionModel<EntityModel<String>>`; default H2 `campaigndb`, prod `${DB_URL}`/`${DB_USERNAME}`/`${DB_PASSWORD}` (TECH-012)
@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-stage Dockerfiles for all 5 new modules using `eclipse-temurin:21-jdk-alpine` builder stage and `eclipse-temurin:21-jre-alpine` runtime stage (TECH-012)
 - `@SpringBootTest + @AutoConfigureMockMvc` tests per SCS (`UsersControllerTest`, `LayoutsControllerTest`, `CampaignsControllerTest`, `TemplatesControllerTest`) including `contextLoads()` and `@WithMockUser getAll` test, plus gateway context load test (`GatewayApplicationTest`); `spring-security-test` dependency added to each domain module (TECH-012)
 - Architecture, class, and sequence diagrams in `docs/diagrams/` updated to reflect multi-module SCS topology with gateway routing (TECH-012)
+- `infra/docker-compose.db.yml` — standalone PostgreSQL 16 (`postgres:16-alpine`) Docker Compose service (`eotv-postgres`) with named volume, `pg_isready` healthcheck, and read-only bind mount for schema init script; network-isolated from the `backend` Docker network by design (TECH-013)
+- `infra/db/init.sql` — idempotent `CREATE SCHEMA IF NOT EXISTS` for all four SCS-owned schemas: `schema_user`, `schema_layout`, `schema_campaign`, `schema_template`; runs automatically on first container init (TECH-013)
+- `infra/README.md` — start/stop commands, healthcheck verification, schema ownership table, Spring datasource URL pattern with `currentSchema` query param, and full env var reference table (TECH-013)
+- `.env.example` — environment variable template documenting `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_USERNAME`, `DB_PASSWORD` with safe placeholder values; `.env` remains git-ignored (TECH-013)
 - Containerised deployment: multi-stage Dockerfiles for backend (eclipse-temurin:21-jdk builder → eclipse-temurin:21-jre-alpine runtime) and frontend (node:20-alpine builder → nginx:alpine runtime) (TECH-004)
 - Docker Compose with isolated `frontend` (bridge) and `backend` (internal-only) networks; frontend exposed on port 80 (TECH-004)
 - Spring profiles: `test` (H2 in-memory DB, permissive CORS for `localhost:5173`) and `prod` (PostgreSQL via `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` env vars, restricted CORS via `FRONTEND_ORIGIN`) (TECH-004)
@@ -40,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTML page `<title>` in `frontend/index.html` updated from generic `frontend` to `Encounters of the Void` (PR #1)
 - React version in root `README.md` corrected from React 18 to React 19.2.6, matching `frontend/package.json` (PR #1)
 - Architecture diagrams corrected: `docs/diagrams/architecture.mmd` and `docs/ARCHITECTURE.md` now accurately show `frontend` container bridging both `frontend` and `backend` Docker networks; Nginx proxy location label corrected to `/api/` (TECH-004)
+- Spring Boot parent/BOM version reverted from 3.4.1 to 3.3.6 in root `pom.xml` to match TECH-012 spec and avoid property-binding breaking changes introduced in 3.4 (TECH-013)
+- `infra/docker-compose.db.yml`: `restart: unless-stopped` added; comment block documenting standalone network isolation and `host-gateway` workaround for combined compose scenarios (TECH-013)
 - Hardcoded `spring.security.user.password` removed from all committed YAML files; credentials must not be in source control (TECH-012)
 - Java package names corrected from `*.userservice`/`*.campaignservice`/`*.layoutservice`/`*.templateservice` to `*.user`/`*.campaign`/`*.layout`/`*.template` per spec single-word suffix convention (TECH-012)
 - `application-test.yaml` relocated from `src/main/resources` to `src/test/resources` in all four domain modules (TECH-012)
