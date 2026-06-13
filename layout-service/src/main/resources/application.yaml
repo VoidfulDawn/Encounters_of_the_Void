@@ -13,8 +13,5 @@ spring:
   h2:
     console:
       enabled: true
-  security:
-    user:
-      password: dev-password
 server:
   port: 8082

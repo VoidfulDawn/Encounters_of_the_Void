@@ -20,9 +20,6 @@ spring:
           uri: http://template-service:8084
           predicates:
             - Path=/api/templates/**
-  security:
-    user:
-      password: gateway-password
 management:
   endpoints:
     web:
