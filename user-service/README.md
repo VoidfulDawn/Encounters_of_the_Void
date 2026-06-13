@@ -1,6 +1,6 @@
 # user-service
 
-Spring Boot 3.3.x microservice — part of the Encounters of the Void multi-module project.
+Spring Boot 3.4.1 microservice — part of the Encounters of the Void multi-module project.
 
 ## Port
 `8081`

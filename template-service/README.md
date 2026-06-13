@@ -1,6 +1,6 @@
 # template-service
 
-Spring Boot 3.3.x microservice — part of the Encounters of the Void multi-module project.
+Spring Boot 3.4.1 microservice — part of the Encounters of the Void multi-module project.
 
 ## Port
 `8084`
@@ -15,7 +15,7 @@ Spring Boot 3.3.x microservice — part of the Encounters of the Void multi-modu
 |---------|-----------|
 | default | H2 in-memory (`jdbc:h2:mem:templatedb`), `create-drop` |
 | prod    | PostgreSQL — `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}`, `validate` |
-| test    | H2 in-memory (`jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1`), `create-drop` |
+| test    | H2 in-memory (`jdbc:h2:mem:templatetestdb;DB_CLOSE_DELAY=-1`), `create-drop` |
 
 ## Build
 ```bash

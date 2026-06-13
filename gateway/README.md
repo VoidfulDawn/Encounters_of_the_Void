@@ -1,6 +1,6 @@
 # gateway
 
-Spring Cloud Gateway 2023.0.3 entry point — part of the Encounters of the Void multi-module project.
+Spring Cloud Gateway 2024.0.1 entry point — part of the Encounters of the Void multi-module project.
 
 ## Port
 `8080`

@@ -11,7 +11,7 @@ graph LR
     Client["Client"]
 
     subgraph GW ["gateway :8080"]
-        Gateway["GatewayApplication\nSpring Cloud Gateway 2023.0.3"]
+        Gateway["GatewayApplication\nSpring Cloud Gateway 2024.0.1"]
     end
 
     subgraph US ["user-service :8081"]
