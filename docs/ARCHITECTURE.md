@@ -1,6 +1,8 @@
 # Architecture — Encounters of the Void
 
-System overview for the Spring Boot HAL API + React frontend stack.
+Agent reference document. Describes the target system design.
+Use this when writing tickets, reviewing code, and proposing implementation plans.
+Always check this document before designing a new feature or service.
 
 ## Multi-Module SCS Architecture (TECH-012)
 
@@ -47,193 +49,295 @@ graph LR
 
 Source: [`docs/diagrams/architecture.md`](diagrams/architecture.md)
 
-## System Architecture (Legacy Monolith)
+---
 
-Overall topology: browser loads the React/Vite frontend, which proxies API calls to the Spring Boot backend.
+## System Overview
 
-```mermaid
-graph TB
-    Browser["Browser"]
+Encounters of the Void is a full-stack web application built on the
+**Self-Contained System (SCS)** pattern. Each SCS owns one domain slice
+end-to-end: its own Spring Boot application, its own schema on a shared
+database, and its own HAL API surface. An API Gateway mediates all
+frontend-to-backend traffic. The React frontend uses MobX for state and
+Material UI for visual components.
 
-    subgraph Frontend ["Frontend (Vite Dev Server :5173)"]
-        Vite["Vite Dev Server\n(proxy /api/* → :8080)"]
-        React["React 19 App\n(App.tsx)"]
-        MWC["@material/web\nmd-filled-card"]
-        ErrorState["Error State\n(p.error on fetch failure)"]
-    end
+```
+Browser
+  └── React SPA (MobX + Material UI)
+        └── [OAuth token on every request]
+              └── API Gateway (Spring Cloud Gateway)
+                    ├── /api/users/**   → User SCS      (:8081)
+                    ├── /api/layouts/** → Layout SCS     (:8082)
+                    ├── /api/campaigns/**→ Campaign SCS  (:8083)
+                    └── /api/templates/**→ Template SCS  (:8084)
 
-    subgraph Backend ["Backend (Spring Boot :8080)"]
-        Controller["ApiController\n@RestController /api/v1"]
-        HomeEP["GET /api/v1/home\n→ HAL+JSON HomeResource"]
-        StatusEP["GET /api/v1/status\n→ JSON status"]
-        CorsConfig["CorsConfig\n(allows :5173 on /api/**)"]
-    end
-
-    Browser -->|"loads UI"| Vite
-    Vite --> React
-    React --> MWC
-    React -->|"fetch /api/v1/home"| Vite
-    Vite -->|"proxy /api/* → :8080"| Controller
-    Controller --> HomeEP
-    Controller --> StatusEP
-    CorsConfig -.->|"CORS policy"| Controller
-    React -->|"on fetch error"| ErrorState
+  SCS-to-SCS calls:
+    Layout SCS    →[basic-auth]→ User SCS
+    Campaign SCS  →[basic-auth]→ User SCS, Template SCS
+    Template SCS  →[basic-auth]→ (none currently)
 ```
 
-Source: [`docs/diagrams/architecture.mmd`](diagrams/architecture.mmd)
+---
 
-## Production Deployment
+## Self-Contained Systems
 
-Containerised deployment via Docker Compose (TECH-004). The Nginx frontend container is the sole public entry point on port 80; the Spring Boot backend is on an internal-only network unreachable from outside Docker.
+### Design rules for every SCS
 
-```mermaid
-graph TD
-  subgraph DockerHost["Docker Host"]
-    FE["frontend\nnginx:alpine\nport 80\n(networks: frontend + backend)"]
-    subgraph network_backend["network: backend (internal-only)"]
-      BE["backend\neclipse-temurin:21-jre-alpine\nport 8080"]
-    end
-    FE -->|"/api/ proxy"| BE
-  end
-  Browser -->|"HTTP :80"| FE
-  BE -->|"JDBC"| PG[("PostgreSQL\nexternal")]
+1. Each SCS is a standalone Spring Boot 3.x application.
+2. Each SCS exposes a REST API using Spring HATEOAS — all responses are HAL+JSON.
+3. Each SCS has its own Maven module and its own Spring Security config.
+4. SCS share the same PostgreSQL instance but each owns a dedicated schema
+   (e.g. `schema_user`, `schema_layout`, `schema_campaign`, `schema_template`).
+5. SCS never share JPA entities or repositories with each other.
+6. Cross-SCS reads use HTTP clients (Spring `RestClient`) authenticated with
+   an internal basic-auth user — never direct DB joins across schemas.
+7. No SCS exposes internal endpoints publicly. The API Gateway is the only
+   public ingress.
+
+### SCS catalogue
+
+| SCS           | Port  | Schema            | Core responsibility                                      |
+|---------------|-------|-------------------|----------------------------------------------------------|
+| user-service  | 8081  | schema_user       | Accounts, roles, OAuth resource server, profile data     |
+| layout-service| 8082  | schema_layout     | Saved layout definitions, user-layout ownership, rendering config |
+| campaign-service | 8083 | schema_campaign  | Campaigns, worlds, encounters, creatures (runtime data)  |
+| template-service | 8084 | schema_template  | Reusable creature templates, encounter presets, note templates |
+
+### SCS Maven structure (each module)
+
+```
+<scs-name>/
+  src/
+    main/
+      java/com/voidfuldawn/encountersofthevoid/<scs>/
+        <ScsName>Application.java          # Spring Boot entry point
+        api/                               # @RestController classes
+        domain/                            # JPA entities, value objects
+        repository/                        # Spring Data JPA repositories
+        service/                           # Business logic
+        client/                            # RestClient beans for inter-SCS calls
+        config/                            # Security, CORS, HATEOAS, DB schema
+        model/                             # HAL resource assemblers + models
+      resources/
+        application.yaml
+        application-prod.yaml
+        application-test.yaml
+    test/
+      java/...
+        api/                               # MockMvc / @WebMvcTest
+        service/                           # @ExtendWith(MockitoExtension)
+        client/                            # WireMock stubs for inter-SCS
 ```
 
-Source: [`docs/diagrams/architecture.mmd`](diagrams/architecture.mmd)
+---
 
-## Production API Flow
+## API Gateway
 
-Browser request proxied through Nginx to the Spring Boot backend over the internal Docker network:
+- Technology: **Spring Cloud Gateway** (separate Spring Boot app, port 8080)
+- Responsibilities:
+  - Route `/api/<domain>/**` to the corresponding SCS
+  - Validate OAuth 2.0 Bearer tokens (resource server mode, delegates to
+    user-service or authorization server)
+  - Strip internal headers before forwarding
+  - Apply rate limiting and CORS policy for the public surface
+- The gateway does NOT contain business logic.
+- Gateway config lives in `gateway/src/main/resources/application.yaml`
+  under `spring.cloud.gateway.routes`.
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant Nginx as Nginx (frontend :80)
-    participant Backend as Spring Boot (backend :8080)
-    participant DB as PostgreSQL (external)
+---
 
-    User->>+Nginx: GET /api/v1/home
-    Nginx->>+Backend: GET /api/v1/home (proxy_pass)
-    Backend->>+DB: JDBC query (prod profile)
-    DB-->>-Backend: ResultSet
-    Backend-->>-Nginx: 200 HAL+JSON {status, _links:{self, status}}
-    Nginx-->>-User: 200 HAL+JSON
+## Authentication
+
+### Frontend → Gateway (public auth)
+
+- **Protocol:** OAuth 2.0 with PKCE (Authorization Code flow)
+- The React SPA obtains an access token from the authorization server
+  (initially integrated into user-service; may be extracted later).
+- Every request from the frontend carries `Authorization: Bearer <token>`.
+- The gateway validates the token. Requests without a valid token receive 401.
+- User identity (`sub`, roles) is forwarded to SCS via a trusted internal header
+  (`X-Auth-User-Id`, `X-Auth-Roles`) added by the gateway after validation.
+- SCS trust these headers only when requests arrive without a Bearer token
+  (i.e. from the gateway on the internal network, not from the public internet).
+
+### SCS → SCS (internal auth)
+
+- **Protocol:** HTTP Basic Auth over the internal Docker network.
+- Each SCS that receives cross-SCS calls has one dedicated service account
+  (username/password) configured in its Spring Security in-memory or
+  properties-based user details.
+- Calling SCS inject credentials via `RestClient` using a pre-configured
+  `BasicAuthenticationInterceptor`.
+- Internal basic-auth credentials are never exposed through the gateway.
+- Credential rotation: update `application-prod.yaml` env vars + restart.
+
+### Internal credential naming convention
+
+```
+# In the receiving SCS (e.g. user-service application-prod.yaml)
+internal:
+  clients:
+    layout-service:
+      username: ${INTERNAL_LAYOUT_USER}
+      password: ${INTERNAL_LAYOUT_PASS}
+    campaign-service:
+      username: ${INTERNAL_CAMPAIGN_USER}
+      password: ${INTERNAL_CAMPAIGN_PASS}
 ```
 
-Source: [`docs/diagrams/sequence-diagram.md`](diagrams/sequence-diagram.md)
+---
 
-## API Flow (Development)
+## Database
 
-HAL home fetch (happy path and error path):
+- Engine: **PostgreSQL** (single instance in development and production)
+- One schema per SCS — enforced at Flyway migration level.
+- Schema names: `schema_user`, `schema_layout`, `schema_campaign`, `schema_template`
+- Each SCS sets `spring.jpa.properties.hibernate.default_schema` to its schema.
+- Flyway migrations live in each SCS under `src/main/resources/db/migration/`.
+- Migration file naming: `V<NNN>__<description>.sql` (per-SCS counter, not global).
+- Cross-schema foreign keys are **forbidden** — referential integrity across
+  domains is maintained at the application level via HTTP calls.
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant React as React App (App.tsx)
-    participant ViteProxy as Vite Proxy (:5173)
-    participant API as ApiController (:8080)
+---
 
-    Browser->>React: page load
-    React->>React: useState("Loading...")
-    React->>React: useEffect fires
+## API Design (HAL)
 
-    React->>+ViteProxy: fetch /api/v1/home
-    ViteProxy->>+API: GET /api/v1/home (Accept: application/hal+json)
-    API->>API: new HomeResource("Everything is working.")
-    API->>API: resource.add(self link)
-    API->>API: resource.add(status link)
-    API-->>-ViteProxy: 200 HAL+JSON {status, _links:{self, status}}
-    ViteProxy-->>-React: 200 HAL+JSON response
+All SCS return `application/hal+json`. Rules:
 
-    React->>React: setStatus(data.status)
-    React->>Browser: render md-filled-card with status message
+- Root collection: `GET /api/<domain>/` → `_embedded.<entity-list>` + `_links`
+- Single resource: `GET /api/<domain>/<id>` → entity fields + `_links.self`
+- Related resources are linked, not embedded by default (avoid N+1 over HTTP).
+- Mutation endpoints (`POST`, `PUT`, `PATCH`, `DELETE`) return the updated
+  resource with its HAL links.
+- Use Spring HATEOAS `RepresentationModel`, `CollectionModel`, and
+  `EntityModel` — do not hand-roll HAL JSON.
+- Assemblers (`RepresentationModelAssembler`) live in `model/assemblers/`.
+- Pagination: `PagedModel` for list endpoints that may grow large.
 
-    note over React,API: Error path — fetch failure
-    React->>+ViteProxy: fetch /api/v1/home
-    ViteProxy-->>-React: network error or non-2xx
-    React->>React: catch block → setError(err.message or "Unknown error")
-    React->>Browser: render p.error with error message
+Example shape for a campaign:
+
+```json
+{
+  "id": "c1a2b3",
+  "name": "The Iron Siege",
+  "worldId": "w9f8e7",
+  "_links": {
+    "self":      { "href": "/api/campaigns/c1a2b3" },
+    "encounters":{ "href": "/api/campaigns/c1a2b3/encounters" },
+    "world":     { "href": "/api/campaigns/c1a2b3/world" },
+    "owner":     { "href": "/api/users/u5d4c3" }
+  }
+}
 ```
 
-Source: [`docs/diagrams/api-flow.mmd`](diagrams/api-flow.mmd)
+---
 
-## Data Model
+## Frontend
 
-Java model classes and HAL serialisation shape:
+- Framework: **React 19**, TypeScript
+- State management: **MobX** — one MobX store per domain slice (UserStore,
+  LayoutStore, CampaignStore, TemplateStore). Stores mirror the SCS split.
+- UI components: **Material UI (MUI)** — use MUI components as the base layer.
+  Custom components wrap MUI — do not bypass MUI to write raw CSS for layout.
+- Component design:
+  - Small, single-responsibility components.
+  - Presentational components receive data as props; no direct store access.
+  - Container components (suffixed `View` or `Page`) connect to MobX stores.
+  - Co-locate component styles using MUI `sx` prop or `styled()`.
+- Routing: React Router v6 with nested routes per domain.
+- API layer: a thin `api/` module per domain (`api/campaigns.ts`,
+  `api/layouts.ts`, etc.) using `fetch` with the Bearer token injected from
+  `UserStore`. No API logic in components.
+- Build: Vite.
+- Dev proxy: Vite proxies `/api/**` to the gateway at `:8080`.
 
-```mermaid
-classDiagram
-    class HomeResource {
-        -String status
-        +HomeResource(String status)
-        +getStatus() String
-    }
+### Frontend directory structure
 
-    class RepresentationModel {
-        <<Spring HATEOAS>>
-        +add(Link link)
-        +getLinks() Links
-    }
-
-    class HalLinks {
-        <<JSON _links shape>>
-        +self HalLink
-        +status HalLink
-    }
-
-    class HalLink {
-        <<JSON shape>>
-        +href String
-    }
-
-    HomeResource --|> RepresentationModel : extends
-    HomeResource "1" --> "1" HalLinks : serialized as _links
-    HalLinks --> HalLink : self
-    HalLinks --> HalLink : status
+```
+frontend/src/
+  api/          # fetch wrappers per domain
+  components/   # shared, reusable presentational components
+  pages/        # route-level page components (one per route)
+  stores/       # MobX stores (UserStore, CampaignStore, etc.)
+  types/        # TypeScript interfaces for HAL resources
+  hooks/        # custom React hooks
+  theme/        # MUI theme config
+  App.tsx
+  main.tsx
 ```
 
-Source: [`docs/diagrams/data-model.mmd`](diagrams/data-model.mmd)
+---
 
-## Component Breakdown
+## Deployment Topology
 
-Module-level component map:
-
-```mermaid
-graph TB
-    subgraph backend ["Backend — com.voidfuldawn.encountersofthevoid"]
-        App["EncountersOfTheVoidApplication\n(entry point)"]
-        Controller["ApiController\n/api/v1/home  /api/v1/status"]
-        Model["HomeResource\nextends RepresentationModel"]
-        Config["CorsConfig\nimplements WebMvcConfigurer"]
-    end
-
-    subgraph frontend ["Frontend — src/"]
-        MainTSX["main.tsx\n(React entry, mounts App)"]
-        AppTSX["App.tsx\n(root component, fetch + render)"]
-        Types["types/HalHome.ts\n(TypeScript HAL interface)"]
-        GlobalD["global.d.ts\n(md-filled-card ambient decl)"]
-    end
-
-    subgraph deployment ["Deployment — Docker"]
-        DockerBE["Dockerfile\n(eclipse-temurin:21-jdk → jre-alpine)"]
-        DockerFE["frontend/Dockerfile\n(node:20-alpine → nginx:alpine)"]
-        NginxConf["frontend/nginx/nginx.conf\n(/api/ proxy → backend:8080)"]
-        Compose["docker-compose.yml\n(networks: frontend, backend)"]
-        ProfProd["application-prod.yaml\n(server.address=0.0.0.0\nCORS: FRONTEND_ORIGIN)"]
-        ProfTest["application-test.yaml\n(CORS: *)"]
-    end
-
-    App --> Controller
-    App --> Config
-    Controller --> Model
-    MainTSX --> AppTSX
-    AppTSX --> Types
-    AppTSX --> GlobalD
-    Compose --> DockerBE
-    Compose --> DockerFE
-    DockerFE --> NginxConf
-    ProfProd -.->|"prod profile"| Config
-    ProfTest -.->|"test profile"| Config
+```
+Docker Compose (dev) / Kubernetes (prod target)
+  ├── postgres          (shared DB, 4 schemas)
+  ├── gateway           (:8080, public)
+  ├── user-service      (:8081, internal only)
+  ├── layout-service    (:8082, internal only)
+  ├── campaign-service  (:8083, internal only)
+  ├── template-service  (:8084, internal only)
+  └── frontend          (:80, Nginx SPA + proxy to gateway)
 ```
 
-Source: [`docs/diagrams/component.mmd`](diagrams/component.mmd)
+- SCS containers are on an internal Docker network with no published ports.
+- Only the gateway and frontend are reachable from outside the Docker network.
+- Nginx on the frontend container serves the React SPA and proxies
+  `/api/**` to the gateway.
+
+---
+
+## Current Implementation State
+
+The codebase is in an early bootstrapping phase. The following components
+exist today:
+
+| Component           | Status            | Notes                                  |
+|---------------------|-------------------|----------------------------------------|
+| Spring Boot app     | Exists (monolith) | Single module, not yet split into SCS  |
+| `ApiController`     | Implemented       | `/api/v1/home`, `/api/v1/status`       |
+| `HomeResource` (HAL)| Implemented       | Extends RepresentationModel            |
+| `CorsConfig`        | Implemented       | Reads `cors.allowed-origins`           |
+| React frontend      | Implemented       | Fetches `/api/v1/home`, MWC card       |
+| Docker Compose      | PR open (TECH-004)| Multi-stage builds, Nginx, profiles    |
+| API Gateway         | Not started       |                                        |
+| SCS split           | Not started       | Monolith refactor → 4 SCS modules      |
+| MobX stores         | Not started       |                                        |
+| Material UI         | Not started       | Currently using @material/web          |
+| PostgreSQL + schemas| Not started       |                                        |
+| OAuth               | Not started       |                                        |
+| Inter-SCS clients   | Not started       |                                        |
+
+The migration path:
+1. Merge TECH-004 (Docker infra)
+2. Introduce PostgreSQL + multi-module Maven structure
+3. Extract SCS one by one starting with user-service
+4. Add API Gateway once two SCS exist
+5. Migrate frontend from @material/web → MUI, add MobX
+6. Wire OAuth between frontend and gateway/user-service
+
+---
+
+## Ticket-Writing Guide for Agents
+
+When the user describes a feature, map it to this architecture before writing tickets.
+
+**Checklist:**
+- Which SCS owns this domain data? The ticket goes to that SCS.
+- Does this feature require cross-SCS data? If yes, one ticket for the providing
+  SCS (add endpoint) and one for the calling SCS (add HTTP client call).
+- Is this a new entity? Include: Flyway migration, JPA entity, repository,
+  service, assembler, controller, tests.
+- Is this a frontend feature? Include: TypeScript HAL type, api/ fetch wrapper,
+  MobX store action/observable, presentational component, page/container
+  component, MUI layout, responsive behavior (desktop + tablet + mobile).
+- Authentication-touching work always involves user-service and gateway.
+- New inter-SCS communication always requires an internal basic-auth credential
+  in both the calling (client config) and receiving (security config) SCS.
+
+**Do not:**
+- Write tickets that add cross-schema DB joins.
+- Write tickets that expose SCS ports publicly.
+- Write tickets that put business logic in the gateway.
+- Write tickets that mix MobX store logic into presentational components.
+- Write tickets that use `@material/web` — the target is MUI.
