@@ -8,6 +8,16 @@ shared Encounters of the Void development database.
 - Docker ≥ 24 with Compose v2
 - A `.env` file at the repo root (copy `.env.example` and fill in values)
 
+## Network isolation
+
+`docker-compose.db.yml` is a **standalone** file. The `eotv-postgres` container
+exposes port `${DB_PORT}` on the host but is **not** joined to the `backend`
+internal network defined in the root `docker-compose.yml`. This is intentional
+for local development: Spring services run directly on the host (or in IDE) and
+connect via `localhost`. If you run both compose files simultaneously, configure
+`DB_HOST=host-gateway` (Linux) or `DB_HOST=host.docker.internal` (Mac/Windows)
+inside the `backend` network so containerised services can reach the database.
+
 ## Starting the database
 
 ```bash
@@ -55,7 +65,7 @@ Example for **user-service** in `application-prod.yaml`:
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=schema_user
-    username: ${DB_USER}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 ```
 
@@ -64,13 +74,19 @@ other services respectively.
 
 ## Environment variables
 
-| Variable      | Description                         | Example           |
-|---------------|-------------------------------------|-------------------|
-| `DB_HOST`     | Hostname or IP of the Postgres node | `localhost`       |
-| `DB_PORT`     | TCP port Postgres listens on        | `5432`            |
-| `DB_NAME`     | Database name                       | `encounters`      |
-| `DB_USER`     | Login role for all services         | `eotv_user`       |
-| `DB_PASSWORD` | Password for `DB_USER`              | *(secret)*        |
+| Variable       | Description                                       | Example           |
+|----------------|---------------------------------------------------|-------------------|
+| `DB_HOST`      | Hostname or IP of the Postgres node               | `localhost`       |
+| `DB_PORT`      | TCP port Postgres listens on                      | `5432`            |
+| `DB_NAME`      | Database name                                     | `encounters`      |
+| `DB_USER`      | Postgres superuser role (used by Docker Compose)  | `eotv_user`       |
+| `DB_USERNAME`  | Datasource username used by Spring services       | `eotv_user`       |
+| `DB_PASSWORD`  | Password for the database user                    | *(secret)*        |
+
+> **Note:** `DB_USER` and `DB_USERNAME` typically hold the same value.
+> `DB_USER` is read by `docker-compose.db.yml` to configure the Postgres container;
+> `DB_USERNAME` is read by each Spring service's `application-prod.yaml` via
+> `spring.datasource.username`.
 
 All values are sourced from the `.env` file (git-ignored) or from the shell
 environment. See `.env.example` at the repo root for a template.

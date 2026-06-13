@@ -1,7 +1,15 @@
+# Standalone development database.
+# This file is intentionally isolated from docker-compose.yml; the db container
+# is reachable at localhost:${DB_PORT} from host-side Spring services but is NOT
+# on the internal `backend` network used by the full-stack compose file.
+# To use both together, start them separately and point each Spring service at
+# DB_HOST=host-gateway (or the host IP) from within the backend network.
+
 services:
   db:
     image: postgres:16-alpine
     container_name: eotv-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
