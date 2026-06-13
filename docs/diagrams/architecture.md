@@ -6,6 +6,8 @@ System topology for Encounters of the Void.
 
 Maven multi-module project with a Spring Cloud Gateway entry point routing to four self-contained Spring Boot microservices.
 
+> **Versions:** Spring Boot 3.4.1 / Spring Cloud 2024.0.1 / Java 21
+
 ```mermaid
 graph LR
     Client["Client"]

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Maven multi-module root `pom.xml` restructured as aggregator (packaging: `pom`) with 5 sibling modules: `user-service`, `layout-service`, `campaign-service`, `template-service`, `gateway`; Spring Boot 3.3.6 parent + Spring Cloud 2023.0.3 BOM managed in `dependencyManagement` (TECH-012, Closes #11)
+- Maven multi-module root `pom.xml` restructured as aggregator (packaging: `pom`) with 5 sibling modules: `user-service`, `layout-service`, `campaign-service`, `template-service`, `gateway`; Spring Boot 3.4.1 parent + Spring Cloud 2024.0.1 BOM managed in `dependencyManagement` (TECH-012, Closes #11)
 - `user-service` (port 8081) — Spring Boot HAL microservice; `UsersController` serves `GET /api/users/` returning `CollectionModel<EntityModel<String>>` with HAL self link; H2 in-memory default datasource (`userdb`, `create-drop`), PostgreSQL prod datasource via `${DB_URL}`/`${DB_USERNAME}`/`${DB_PASSWORD}`, H2 in-memory test datasource (`usertestdb`) (TECH-012)
 - `layout-service` (port 8082) — Spring Boot HAL microservice; `LayoutsController` serves `GET /api/layouts/` returning `CollectionModel<EntityModel<String>>`; same three-profile datasource strategy as user-service (`layoutdb` default) (TECH-012)
 - `campaign-service` (port 8083) — Spring Boot HAL microservice; `CampaignsController` serves `GET /api/campaigns/` returning `CollectionModel<EntityModel<String>>`; default H2 `campaigndb`, prod `${DB_URL}`/`${DB_USERNAME}`/`${DB_PASSWORD}` (TECH-012)
@@ -40,7 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTML page `<title>` in `frontend/index.html` updated from generic `frontend` to `Encounters of the Void` (PR #1)
 - React version in root `README.md` corrected from React 18 to React 19.2.6, matching `frontend/package.json` (PR #1)
 - Architecture diagrams corrected: `docs/diagrams/architecture.mmd` and `docs/ARCHITECTURE.md` now accurately show `frontend` container bridging both `frontend` and `backend` Docker networks; Nginx proxy location label corrected to `/api/` (TECH-004)
-- Spring Boot corrected to 3.3.6 and Spring Cloud BOM to 2023.0.3 (compatible with SB 3.3.x); intermediate upgrade to 3.4.4 / 2024.0.1 reverted to satisfy spec requirement (TECH-012)
 - Hardcoded `spring.security.user.password` removed from all committed YAML files; credentials must not be in source control (TECH-012)
 - Java package names corrected from `*.userservice`/`*.campaignservice`/`*.layoutservice`/`*.templateservice` to `*.user`/`*.campaign`/`*.layout`/`*.template` per spec single-word suffix convention (TECH-012)
 - `application-test.yaml` relocated from `src/main/resources` to `src/test/resources` in all four domain modules (TECH-012)
