@@ -13,8 +13,8 @@ Spring Boot 3.3.x microservice — part of the Encounters of the Void multi-modu
 ## Profiles
 | Profile | Datasource |
 |---------|-----------|
-| default | H2 in-memory (`jdbc:h2:mem:templateservicedb`) |
-| prod    | PostgreSQL — `${DB_HOST}:${DB_PORT}/${DB_NAME_TEMPLATE}` / `${DB_USER}` / `${DB_PASS}` |
+| default | H2 in-memory (`jdbc:h2:mem:templatedb`), `create-drop` |
+| prod    | PostgreSQL — `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}`, `validate` |
 | test    | H2 in-memory (`jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1`), `create-drop` |
 
 ## Build

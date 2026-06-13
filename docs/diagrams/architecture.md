@@ -49,18 +49,18 @@ graph LR
 
 | Route ID | Path Predicate | Upstream URI |
 |----------|---------------|--------------|
-| user-service | `/api/users/**` | `http://localhost:8081` |
-| layout-service | `/api/layouts/**` | `http://localhost:8082` |
-| campaign-service | `/api/campaigns/**` | `http://localhost:8083` |
-| template-service | `/api/templates/**` | `http://localhost:8084` |
+| user-service | `/api/users/**` | `http://user-service:8081` |
+| layout-service | `/api/layouts/**` | `http://layout-service:8082` |
+| campaign-service | `/api/campaigns/**` | `http://campaign-service:8083` |
+| template-service | `/api/templates/**` | `http://template-service:8084` |
 
 ### SCS Datasource Profiles
 
 | Profile | Datasource | DDL |
 |---------|-----------|-----|
-| default (dev) | H2 in-memory (`jdbc:h2:mem:<service>db`) | `update` |
-| `prod` | PostgreSQL via `DB_HOST/DB_PORT/DB_NAME_*/DB_USER/DB_PASS` env vars | `validate` |
-| `test` | H2 in-memory (`jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1`) | `create-drop` |
+| default (dev) | H2 in-memory (`jdbc:h2:mem:<service>db`) | `create-drop` |
+| `prod` | PostgreSQL via `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}` | `validate` |
+| `test` | H2 in-memory (`jdbc:h2:mem:<service>testdb;DB_CLOSE_DELAY=-1`) | `create-drop` |
 
 ---
 

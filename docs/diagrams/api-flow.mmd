@@ -1,4 +1,18 @@
 sequenceDiagram
+    participant Client
+    participant GW as Gateway :8080
+    participant SCS as user-service :8081
+
+    Note over Client,SCS: Multi-Module Gateway API Flow (TECH-012)
+    Client->>+GW: GET /api/users/ (Accept: application/hal+json)
+    GW->>GW: match route Path=/api/users/**
+    GW->>+SCS: GET /api/users/ (forwarded to http://user-service:8081)
+    SCS->>SCS: UsersController.getAll()
+    SCS->>SCS: CollectionModel.of([], selfLink)
+    SCS-->>-GW: 200 application/hal+json
+    GW-->>-Client: 200 {"_embedded":{},"_links":{"self":{"href":"..."}}}
+
+    Note over Client,SCS: Legacy Monolith API Flow (pre-TECH-012)
     participant Browser
     participant React as React App (App.tsx)
     participant ViteProxy as Vite Proxy (:5173)

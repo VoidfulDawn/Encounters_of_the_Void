@@ -8,10 +8,10 @@ Spring Cloud Gateway 2023.0.3 entry point — part of the Encounters of the Void
 ## Routes
 | Route ID | Path Predicate | Upstream |
 |----------|---------------|----------|
-| user-service | `/api/users/**` | `http://localhost:8081` |
-| layout-service | `/api/layouts/**` | `http://localhost:8082` |
-| campaign-service | `/api/campaigns/**` | `http://localhost:8083` |
-| template-service | `/api/templates/**` | `http://localhost:8084` |
+| user-service | `/api/users/**` | `http://user-service:8081` |
+| layout-service | `/api/layouts/**` | `http://layout-service:8082` |
+| campaign-service | `/api/campaigns/**` | `http://campaign-service:8083` |
+| template-service | `/api/templates/**` | `http://template-service:8084` |
 
 ## Build
 ```bash
